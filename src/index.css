@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --color-neon-cyan: #22d3ee;
+  --color-neon-green: #4ade80;
+  --color-neon-purple: #a855f7;
+  --color-neon-red: #ef4444;
+  --color-bg-main: #010409;
+  --color-bg-card: rgba(15, 23, 42, 0.8);
+
+  --font-mono: "JetBrains Mono", monospace;
+
+  --shadow-hud: 0 0 15px rgba(34, 211, 238, 0.1);
+
+  --background-image-hud-grid: linear-gradient(to right, rgba(34, 211, 238, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+}
+
+@layer base {
+  body {
+    @apply bg-bg-main text-slate-100 font-mono overflow-hidden;
+  }
+}
+
+@layer components {
+  .hud-glass {
+    @apply bg-slate-950/80 backdrop-blur-xl border border-cyan-900/50 shadow-hud;
+  }
+
+  .scanning-line {
+    @apply absolute left-0 w-full h-[2px] z-[100] pointer-events-none;
+    background: linear-gradient(to right, transparent, var(--color-neon-cyan), transparent);
+    box-shadow: 0 0 15px var(--color-neon-cyan);
+    animation: scan 4s linear infinite;
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out forwards;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+  }
+
+  /* Ocultar interfaz HUD oscura */
+  .flex.h-screen {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* Ocultar elementos marcados expresamente */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* El reporte debe ser visible y ocupar el espacio */
+  .print-report-container {
+    display: block !important;
+    background: white !important;
+    color: black !important;
+    position: relative !important;
+    width: 100% !important;
+    z-index: 99999 !important;
+  }
+}
