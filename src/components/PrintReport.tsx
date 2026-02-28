@@ -21,7 +21,7 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
     const uniqueProjectsWithTasks = [...new Set(tasks.map(t => t.project))].sort();
 
     return (
-        <div className="hidden print:block p-8 bg-white text-black min-h-screen font-sans">
+        <div className="hidden print:block p-8 bg-white text-black font-sans">
             {/* Header X-Treme Style */}
             <header className="border-b-4 border-black pb-4 mb-4 break-inside-avoid">
                 <div className="flex justify-between items-start">
@@ -30,12 +30,12 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
                         <p className="text-sm font-bold text-gray-600 mt-2 uppercase">
                             {viewFilter === 'PENDING' ? 'REPORTE DE TAREAS PENDIENTES' :
                                 viewFilter === 'TODAY' ? 'REPORTE TÁCTICO DEL DÍA' :
-                                    'PLAN MAESTRO COMPLETO (HISTÓRICO Y FUTURO)'}
+                                    activeProject === 'ALL' ? 'REPORTE GLOBAL DE FLOTA' : `LP# ${activeProjectData?.lp || 'N/A'}`}
                         </p>
                     </div>
                     <div className="text-right">
                         <div className="text-xs font-black bg-black text-white px-2 py-1 mb-2 inline-block uppercase italic">
-                            {activeProject === 'ALL' ? 'FLOTA: TODAS LAS UNIDADES' : `UNIDAD: ${activeProject}`}
+                            {activeProject === 'ALL' ? 'FLOTA ACTIVA' : activeProjectData?.name || activeProject}
                         </div>
                         <p className="text-[10px] font-bold text-gray-500 uppercase">FECHA REPORTE</p>
                         <p className="text-lg font-black leading-none">{today.toUpperCase()}</p>
@@ -44,35 +44,39 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
 
                 {/* Detalle o Resumen (Dependiendo de si es ALL o Proyecto Específico) */}
                 {activeProject !== 'ALL' && activeProjectData ? (
-                    <div className="mt-6 grid grid-cols-3 gap-6 text-[10px] font-bold uppercase">
+                    <div className="mt-4 grid grid-cols-4 gap-4 text-[9px] font-bold uppercase">
                         <div className="bg-gray-50 p-2 border border-gray-300">
-                            <span className="text-gray-500 block text-[8px] mb-1">PROYECTO / UNIDAD:</span>
-                            <span className="text-xs">{activeProjectData.name} | {activeProjectData.ac}</span>
+                            <span className="text-gray-500 block text-[7px] mb-1">CUSTOMER:</span>
+                            <span className="text-[11px] font-black">{activeProjectData.customer || 'N/A'}</span>
                         </div>
                         <div className="bg-gray-50 p-2 border border-gray-300">
-                            <span className="text-gray-500 block text-[8px] mb-1">CLIENTE | WO:</span>
-                            <span className="text-xs font-black">{activeProjectData.customer} | {activeProjectData.wo}</span>
+                            <span className="text-gray-500 block text-[7px] mb-1">A/C | MODEL | MSN:</span>
+                            <span>{activeProjectData.ac || '-'} | {activeProjectData.model || '-'} | {activeProjectData.msn || '-'}</span>
                         </div>
                         <div className="bg-gray-50 p-2 border border-gray-300">
-                            <span className="text-gray-500 block text-[8px] mb-1">FECHA INICIO | INTERVALO:</span>
-                            <span className="text-xs">{activeProjectData.startDate} | {activeProjectData.intervalDays} DÍAS</span>
+                            <span className="text-gray-500 block text-[7px] mb-1">WO | INTERVAL:</span>
+                            <span>{activeProjectData.wo || 'N/A'} | {activeProjectData.intervalDays} DÍAS</span>
+                        </div>
+                        <div className="bg-gray-50 p-2 border border-gray-300">
+                            <span className="text-gray-500 block text-[7px] mb-1">PM (PROJECT MANAGER):</span>
+                            <span>{activeProjectData.pm || 'N/A'}</span>
                         </div>
                     </div>
                 ) : (
-                    <div className="mt-6 grid grid-cols-3 gap-6 text-[10px] font-bold uppercase">
+                    <div className="mt-4 grid grid-cols-3 gap-4 text-[9px] font-bold uppercase">
                         <div className="bg-gray-50 p-2 border border-gray-300">
-                            <span className="text-gray-500 block text-[8px] mb-1">UNIDADES ACTIVAS:</span>
-                            <span className="text-xs">{uniqueProjectsWithTasks.length} PROYECTO(S)</span>
+                            <span className="text-gray-500 block text-[7px] mb-1">AIRCRAFT ACTIVOS (A/C):</span>
+                            <span className="text-[11px] font-black">{uniqueProjectsWithTasks.length} A/C(S)</span>
                         </div>
                         <div className="bg-gray-50 p-2 border border-gray-300">
-                            <span className="text-gray-500 block text-[8px] mb-1">CLIENTES ACTIVOS:</span>
-                            <span className="text-xs font-black">
+                            <span className="text-gray-500 block text-[7px] mb-1">CUSTOMERS ACTIVOS:</span>
+                            <span className="font-black">
                                 {[...new Set(uniqueProjectsWithTasks.map(p => projects[p]?.customer).filter(Boolean))].join(', ') || '-'}
                             </span>
                         </div>
                         <div className="bg-gray-50 p-2 border border-gray-300">
-                            <span className="text-gray-500 block text-[8px] mb-1">TOTAL TAREAS:</span>
-                            <span className="text-xs">{tasks.length} REGISTRADAS</span>
+                            <span className="text-gray-500 block text-[7px] mb-1">TOTAL TAREAS:</span>
+                            <span>{tasks.length} REGISTRADAS</span>
                         </div>
                     </div>
                 )}
@@ -90,11 +94,11 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
                         {/* Sub-header por unidad */}
                         <div className="bg-black text-white p-2 px-4 flex justify-between items-center font-black text-xs uppercase tracking-wider mb-0 border-b border-black">
                             <div className="flex gap-4">
-                                <span>UNIDAD: {projName}</span>
-                                {projData && <span className="text-gray-400">| A/C: {projData.ac} | WO: {projData.wo}</span>}
+                                <span>A/C: {projData?.ac || projName}</span>
+                                {projData && <span className="text-gray-400">| LP#: {projData.lp || '-'} | WO: {projData.wo}</span>}
                             </div>
                             <div className="text-[9px] italic">
-                                {viewFilter === 'PENDING' ? 'SOLO PENDIENTES' : 'PLAN MAESTRO'}
+                                {viewFilter === 'PENDING' ? 'SOLO PENDIENTES' : 'PLAN TÁCTICO'}
                             </div>
                         </div>
 

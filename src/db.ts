@@ -23,7 +23,11 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
                 name: p.name,
                 customer: p.customer,
                 ac: p.ac,
+                model: p.model,
+                msn: p.msn,
                 wo: p.wo,
+                lp: p.lp,
+                pm: p.pm,
                 startDate: p.start_date,
                 intervalDays: p.interval_days,
             };
@@ -61,7 +65,11 @@ export const saveProjectToCloud = async (project: Project) => {
         name: project.name,
         customer: project.customer,
         ac: project.ac,
+        model: project.model,
+        msn: project.msn,
         wo: project.wo,
+        lp: project.lp,
+        pm: project.pm,
         start_date: project.startDate,
         interval_days: project.intervalDays,
     });

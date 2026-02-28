@@ -17,7 +17,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
         name: '',
         customer: '',
         ac: '',
+        model: '',
+        msn: '',
         wo: '',
+        lp: '',
+        pm: '',
         startDate: new Date().toISOString().split('T')[0],
         intervalDays: 45
     });
@@ -38,35 +42,73 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
             let customer = currentProjectData?.customer || "";
             let wo = currentProjectData?.wo || "";
             let ac = currentProjectData?.ac || "";
+            let model = currentProjectData?.model || "";
+            let msn = currentProjectData?.msn || "";
+            let lp = currentProjectData?.lp || "";
+            let pm = currentProjectData?.pm || "";
             let interval = currentProjectData?.intervalDays || 45;
             let projectStartDateStr = currentProjectData?.startDate || new Date().toISOString().split('T')[0];
 
             const tasks: Task[] = [];
             let taskTableStarted = false;
 
-            lines.forEach((line) => {
-                const cols = line.split(',').map(c => c.trim().replace(/"/g, ''));
+            lines.forEach((line, rowIndex) => {
+                const rawLine = line.trim();
+                const cols = rawLine.split(',').map(c => c.trim().replace(/"/g, ''));
                 if (cols.length < 2) return;
 
-                // Si no hay proyecto seleccionado, intentar capturar metadatos del CSV
                 if (activeProject === 'ALL') {
-                    if (line.includes("PROYECT PLAN")) projectName = cols[1] || projectName;
-                    if (line.includes("ATLAS AIR")) customer = "ATLAS AIR";
-                    if (line.includes("WO.")) {
-                        const match = line.match(/WO\.\s*([\d\w]+)/);
-                        if (match) wo = match[1];
+                    // Mapeo Primera Fila (Ej: LP # 1 projects PROGRESS Project MANAGER: Ricardo,TASK start: 2/25/2026)
+                    if (rowIndex === 0) {
+                        const lpMatch = rawLine.match(/LP\s*#\s*([\d\w-]+)/i);
+                        if (lpMatch) lp = lpMatch[1];
+
+                        const pmMatch = rawLine.match(/MANAGER:\s*([^,]+)/i);
+                        if (pmMatch) pm = pmMatch[1].trim();
+
+                        const taskStartMatch = rawLine.match(/TASK start:\s*([\d/-]+)/i);
+                        if (taskStartMatch) {
+                            // Intentar formatear la fecha a YYYY-MM-DD para el input type="date"
+                            try {
+                                const parsed = new Date(taskStartMatch[1]);
+                                if (!isNaN(parsed.getTime())) {
+                                    projectStartDateStr = parsed.toISOString().split('T')[0];
+                                }
+                            } catch (e) { }
+                        }
                     }
-                    if (line.includes("A/C:")) {
-                        const match = line.match(/A\/C:\s*([\d\w\s]+)/);
-                        if (match) ac = match[1].trim();
-                    }
-                    if (line.includes("Interval Days:")) {
-                        const match = line.match(/Interval Days:,\s*(\d+)/);
-                        if (match) interval = parseInt(match[1]);
-                    }
-                    if (line.includes("TASK start:")) {
-                        const match = line.match(/TASK start:\s*([\d/-]+)/);
-                        if (match) projectStartDateStr = match[1];
+
+                    // Mapeo Segunda Fila (Ej: PROYECT PLAN,PLAN C-Check,ATLAS AIR - WO. 012106 - A/C: B737 N859AU,Interval Days:, 45)
+                    if (rowIndex === 1) {
+                        if (cols[1]) projectName = cols[1];
+
+                        // Buscar ATLAS AIR, u otro cliente antes del guion
+                        const rawData = rawLine.toUpperCase();
+                        if (rawData.includes("ATLAS AIR")) customer = "ATLAS AIR";
+                        else if (cols[2]) customer = cols[2].split('-')[0].trim();
+
+                        const woMatch = rawData.match(/WO\.?\s*([A-Z0-9-]+)/);
+                        if (woMatch) wo = woMatch[1];
+
+                        const acMatch = rawData.match(/A\/C:\s*([A-Z0-9]+)\s*([A-Z0-9]+)/);
+                        if (acMatch) {
+                            model = acMatch[1]; // B737
+                            ac = acMatch[2];    // N859AU
+                        } else {
+                            const fallbackAcMatch = rawData.match(/A\/C:\s*([A-Z0-9-\s]+)/);
+                            if (fallbackAcMatch) {
+                                const parts = fallbackAcMatch[1].trim().split(' ');
+                                if (parts.length > 1) {
+                                    model = parts[0];
+                                    ac = parts.slice(1).join(' ');
+                                } else {
+                                    ac = parts[0];
+                                }
+                            }
+                        }
+
+                        const intervalMatch = rawLine.match(/Interval Days:,\s*(\d+)/i);
+                        if (intervalMatch) interval = parseInt(intervalMatch[1]);
                     }
                 }
 
@@ -76,32 +118,41 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                 }
 
                 if (taskTableStarted && cols[0] && cols[3]) {
-                    // Según la imagen del CSV las columnas son:
-                    // 0: ITEM#, 1: CATEGORY, 2: REMARKS, 3: DESCRIPTION
-                    // 4: Start Date, 5: Due Date, 6: SKILL, 7: Responsible
-                    // 8: PLANNED HOURS, 9: ADD HOURS
-
+                    // Columnas esperadas (0: ITEM#, 1: CATEGORY, 2: REMARKS, 3: DESCRIPTION, 4: Start Date, 5: Due Date, 6: SKILL)
                     let startDay = 0;
                     let durationDays = 1;
 
                     if (cols[4] && projectStartDateStr) {
                         try {
+                            // Cuidado con formatos de fecha locales (ej: MM/DD/YYYY)
+                            // Requerimos parsearlas con "new Date()" que es lo mejor compatible
                             const taskStartDate = new Date(cols[4]);
-                            const projDate = new Date(projectStartDateStr);
-                            const diffTimeStart = taskStartDate.getTime() - projDate.getTime();
-                            startDay = Math.max(0, Math.ceil(diffTimeStart / (1000 * 60 * 60 * 24)));
+                            const projDate = new Date(projectStartDateStr + "T00:00:00");
 
-                            if (cols[5]) {
-                                const taskDueDate = new Date(cols[5]);
-                                const diffTimeEnd = taskDueDate.getTime() - taskStartDate.getTime();
-                                durationDays = Math.max(1, Math.ceil(diffTimeEnd / (1000 * 60 * 60 * 24)));
-                                // Si due date == start date durationDays sería 0, pero con el max(1) se arregla
-                                if (taskDueDate.getTime() === taskStartDate.getTime()) durationDays = 1;
+                            if (!isNaN(taskStartDate.getTime()) && !isNaN(projDate.getTime())) {
+                                // Ajustar horas a las 00:00:00 para cálculos precisos
+                                taskStartDate.setHours(0, 0, 0, 0);
+                                projDate.setHours(0, 0, 0, 0);
+                                const diffTimeStart = taskStartDate.getTime() - projDate.getTime();
+                                startDay = Math.max(0, Math.floor(diffTimeStart / (1000 * 60 * 60 * 24)));
+
+                                if (cols[5]) {
+                                    const taskDueDate = new Date(cols[5]);
+                                    if (!isNaN(taskDueDate.getTime())) {
+                                        taskDueDate.setHours(0, 0, 0, 0);
+                                        const diffTimeEnd = taskDueDate.getTime() - taskStartDate.getTime();
+                                        // La duración mínima es 1 día (si termina el mismo día que empieza)
+                                        // Sumamos +1 porque GANTT usa duracion inclusiva (ej: empiza el 2, termina el 2 = 1 dia)
+                                        durationDays = Math.max(1, Math.floor(diffTimeEnd / (1000 * 60 * 60 * 24)) + 1);
+                                    }
+                                }
                             }
-                        } catch (e) { startDay = 0; }
+                        } catch (e) {
+                            console.warn("Error calculando fecha para tarea", cols[0], e);
+                        }
                     }
 
-                    // Calcular horas (Planned Hours)
+                    // Calcular horas (Planned Hours) logica opcional si existe cols[8]
                     let durationHours = 0;
                     let durationFromHours = 1;
                     if (cols[8]) {
@@ -112,16 +163,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                         }
                     }
 
-                    // Si tenemos fechas, usamos durationDays. Si tenemos PLANNED HOURS (pero durationDays == 1 por defecto), talvez las horas dominan.
-                    // Priorizamos la duración en días calculada por "Due Date" - "Start Date". Si es 1 dia, podemos complementar con "durationHours".
-                    const finalDuration = durationDays > 1 ? durationDays : durationFromHours;
+                    // Si calculamos las fechas correctas, las favorecemos por encima de las horas estimadas.
+                    const finalDuration = cols[5] ? durationDays : durationFromHours;
 
                     tasks.push({
                         id: cols[0],
                         title: cols[3].substring(0, 40).toUpperCase(),
                         description: cols[3],
                         type: (cols[6] === "A&P" ? "AP" : (cols[6] || "AP")) as Task['type'],
-                        start: startDay,
+                        start: startDay, // Empieza en 0-index
                         startHour: 8,
                         duration: finalDuration,
                         durationHours: durationHours,
@@ -138,8 +188,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                     onAddProject({
                         name: finalProjectName,
                         customer: customer || "CLIENTE_DESCONOCIDO",
-                        ac: ac || "A/C_PENDIENTE",
+                        ac: ac || "PENDIENTE",
+                        model: model,
+                        msn: msn,
                         wo: wo || "WO_0000",
+                        lp: lp,
+                        pm: pm,
                         startDate: projectStartDateStr,
                         intervalDays: interval
                     });
@@ -210,18 +264,34 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                     </h3>
 
                     <div className="space-y-2">
-                        <div>
-                            <label htmlFor="customer-input" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">CUSTOMER / CLIENTE</label>
-                            <div className="relative">
-                                <User className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
-                                <input
-                                    id="customer-input"
-                                    name="customer"
-                                    value={formData.customer}
-                                    onChange={handleChange}
-                                    placeholder="CLIENTE S.A..."
-                                    className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
-                                />
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label htmlFor="customer-input" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">CUSTOMER (OPERADOR)</label>
+                                <div className="relative">
+                                    <User className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                                    <input
+                                        id="customer-input"
+                                        name="customer"
+                                        value={formData.customer}
+                                        onChange={handleChange}
+                                        placeholder="ATLAS AIR..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="pm-input" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">PM (PROJECT MANAGER)</label>
+                                <div className="relative">
+                                    <User className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                                    <input
+                                        id="pm-input"
+                                        name="pm"
+                                        value={formData.pm || ''}
+                                        onChange={handleChange}
+                                        placeholder="RICARDO..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -235,7 +305,38 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                                         name="ac"
                                         value={formData.ac}
                                         onChange={handleChange}
+                                        placeholder="N859AU..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="model-input" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">AIRCRAFT MODEL</label>
+                                <div className="relative">
+                                    <Plane className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                                    <input
+                                        id="model-input"
+                                        name="model"
+                                        value={formData.model || ''}
+                                        onChange={handleChange}
                                         placeholder="B737-800..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                            <div>
+                                <label htmlFor="msn-input" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">MSN (SERIAL)</label>
+                                <div className="relative">
+                                    <Hash className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                                    <input
+                                        id="msn-input"
+                                        name="msn"
+                                        value={formData.msn || ''}
+                                        onChange={handleChange}
+                                        placeholder="345..."
                                         className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
                                     />
                                 </div>
@@ -249,7 +350,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                                         name="wo"
                                         value={formData.wo}
                                         onChange={handleChange}
-                                        placeholder="WO-2025-001..."
+                                        placeholder="WO-2025..."
+                                        className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="lp-input" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">LP# (LINE PROD)</label>
+                                <div className="relative">
+                                    <Hash className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-600" />
+                                    <input
+                                        id="lp-input"
+                                        name="lp"
+                                        value={formData.lp || ''}
+                                        onChange={handleChange}
+                                        placeholder="1..."
                                         className="w-full bg-slate-950 border border-slate-800 rounded py-1.5 pl-7 pr-2 text-[10px] text-white focus:border-cyan-500 outline-none transition-all"
                                     />
                                 </div>
@@ -344,7 +459,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
 
                 {/* Project List */}
                 <section>
-                    <label className="text-[10px] text-slate-500 uppercase font-black mb-3 block border-b border-slate-800 pb-1">Unidades en Mantenimiento</label>
+                    <label className="text-[10px] text-slate-500 uppercase font-black mb-3 block border-b border-slate-800 pb-1">AIRCRAFT EN MANTENIMIENTO</label>
                     <div className="space-y-2">
                         {Object.keys(projects).length === 0 && (
                             <p className="text-[10px] text-slate-600 italic text-center py-4">SISTEMA VACÍO</p>

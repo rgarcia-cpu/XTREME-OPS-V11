@@ -15,10 +15,14 @@ export interface Task {
 }
 
 export interface Project {
-    name: string;
+    name: string; // Used as the Project ID
     customer: string;
     ac: string;
+    model?: string;
+    msn?: string;
     wo: string;
+    lp?: string;
+    pm?: string;
     startDate: string;
     intervalDays: number;
 }

@@ -360,8 +360,8 @@ const App: React.FC = () => {
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Layers className="w-3 h-3 text-cyan-500/50" />
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Sector:</span>
-              <span className="text-[9px] font-black text-white uppercase">{state.activeProject === 'ALL' ? 'TODOS LOS PROYECTOS' : state.activeProject}</span>
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">A/C Sector:</span>
+              <span className="text-[9px] font-black text-white uppercase">{state.activeProject === 'ALL' ? 'FLOTA ACTIVA' : state.activeProject}</span>
             </div>
             <div className="flex items-center gap-2">
               <Activity className="w-3 h-3 text-cyan-500/50" />

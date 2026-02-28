@@ -15,7 +15,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeProject, setActiveProject, proj
         <aside className={`w-64 flex-none bg-slate-950/80 border-r border-cyan-900/30 flex flex-col z-40 backdrop-blur-md ${className || ''}`}>
             <div className="p-4 border-b border-cyan-900/20">
                 <label className="text-[8px] text-cyan-500 font-black uppercase block mb-3 tracking-widest">
-                    GESTIÓN DE PROYECTOS
+                    GESTIÓN DE FLOTA
                 </label>
                 <div className="space-y-1">
                     <button
@@ -23,7 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeProject, setActiveProject, proj
                         className={`w-full flex items-center justify-between p-2 rounded text-[10px] font-black transition-all ${activeProject === 'ALL' ? 'bg-cyan-500 text-black' : 'text-cyan-500 hover:bg-cyan-500/10'
                             }`}
                     >
-                        TODOS LOS PROYECTOS <Plane className="w-3 h-3" />
+                        FLOTA ACTIVA <Plane className="w-3 h-3" />
                     </button>
                 </div>
             </div>
