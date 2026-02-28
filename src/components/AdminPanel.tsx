@@ -36,170 +36,73 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
             if (!text) return;
 
             const lines = text.split('\n');
-            const currentProjectData = projects[activeProject];
 
-            let projectName = activeProject !== 'ALL' ? activeProject : "";
-            let customer = currentProjectData?.customer || "";
-            let wo = currentProjectData?.wo || "";
-            let ac = currentProjectData?.ac || "";
-            let model = currentProjectData?.model || "";
-            let msn = currentProjectData?.msn || "";
-            let lp = currentProjectData?.lp || "";
-            let pm = currentProjectData?.pm || "";
-            let interval = currentProjectData?.intervalDays || 45;
-            let projectStartDateStr = currentProjectData?.startDate || new Date().toISOString().split('T')[0];
+            if (activeProject === 'ALL') {
+                alert("ATENCIÓN: Para importar tareas desde Excel, primero debes seleccionar un Proyecto/Avión específico en el menú lateral (Ej. ATI, ATLAS AIR, etc.).");
+                return;
+            }
 
             const tasks: Task[] = [];
-            let taskTableStarted = false;
+            let headerFound = false;
 
-            lines.forEach((line, rowIndex) => {
+            lines.forEach((line) => {
                 const rawLine = line.trim();
+                if (!rawLine) return; // Ignore empty lines
+
                 const cols = rawLine.split(',').map(c => c.trim().replace(/"/g, ''));
-                if (cols.length < 2) return;
 
-                if (activeProject === 'ALL') {
-                    // Mapeo Primera Fila (Ej: LP # 1 projects PROGRESS Project MANAGER: Ricardo,TASK start: 2/25/2026)
-                    if (rowIndex === 0) {
-                        const lpMatch = rawLine.match(/LP\s*#\s*([\d\w-]+)/i);
-                        if (lpMatch) lp = lpMatch[1];
-
-                        const pmMatch = rawLine.match(/MANAGER:\s*([^,]+)/i);
-                        if (pmMatch) pm = pmMatch[1].trim();
-
-                        const taskStartMatch = rawLine.match(/TASK start:\s*([\d/-]+)/i);
-                        if (taskStartMatch) {
-                            // Intentar formatear la fecha a YYYY-MM-DD para el input type="date"
-                            try {
-                                const parsed = new Date(taskStartMatch[1]);
-                                if (!isNaN(parsed.getTime())) {
-                                    projectStartDateStr = parsed.toISOString().split('T')[0];
-                                }
-                            } catch (e) { }
-                        }
-                    }
-
-                    // Mapeo Segunda Fila (Ej: PROYECT PLAN,PLAN C-Check,ATLAS AIR - WO. 012106 - A/C: B737 N859AU,Interval Days:, 45)
-                    if (rowIndex === 1) {
-                        if (cols[1]) projectName = cols[1];
-
-                        // Buscar ATLAS AIR, u otro cliente antes del guion
-                        const rawData = rawLine.toUpperCase();
-                        if (rawData.includes("ATLAS AIR")) customer = "ATLAS AIR";
-                        else if (cols[2]) customer = cols[2].split('-')[0].trim();
-
-                        const woMatch = rawData.match(/WO\.?\s*([A-Z0-9-]+)/);
-                        if (woMatch) wo = woMatch[1];
-
-                        const acMatch = rawData.match(/A\/C:\s*([A-Z0-9]+)\s*([A-Z0-9]+)/);
-                        if (acMatch) {
-                            model = acMatch[1]; // B737
-                            ac = acMatch[2];    // N859AU
-                        } else {
-                            const fallbackAcMatch = rawData.match(/A\/C:\s*([A-Z0-9-\s]+)/);
-                            if (fallbackAcMatch) {
-                                const parts = fallbackAcMatch[1].trim().split(' ');
-                                if (parts.length > 1) {
-                                    model = parts[0];
-                                    ac = parts.slice(1).join(' ');
-                                } else {
-                                    ac = parts[0];
-                                }
-                            }
-                        }
-
-                        const intervalMatch = rawLine.match(/Interval Days:,\s*(\d+)/i);
-                        if (intervalMatch) interval = parseInt(intervalMatch[1]);
-                    }
-                }
-
-                if (cols[0] === "ITEM#") {
-                    taskTableStarted = true;
+                // Buscar encabezado y saltear si es necesario
+                if (cols[0].toUpperCase().includes("ITEM#")) {
+                    headerFound = true;
                     return;
                 }
 
-                if (taskTableStarted && cols[0] && cols[3]) {
-                    // Columnas esperadas (0: ITEM#, 1: CATEGORY, 2: REMARKS, 3: DESCRIPTION, 4: Start Date, 5: Due Date, 6: SKILL)
-                    let startDay = 0;
-                    let durationDays = 1;
+                // Si ya pasamos el encabezado y hay al menos 2 columnas
+                if (headerFound && cols[0] && cols[1]) {
+                    // EXPECTED COLUMNS:
+                    // 0: ITEM# (id)
+                    // 1: DISCREPANCY (title)
+                    // 2: DESCRIPTION LARGA (description)
+                    // 3: SKILL (type)
+                    // 4: DIA INI (start)
+                    // 5: DIA DURACION (duration)
+                    // 6: PLANNED HOURS (No se usa directamente en la DB pero podría ser base duracion, aqui tomamos duration normal o usamos Planned/8)
+                    // 7: ADD HOURS (durationHours)
+                    // 8: AVANCE (progress)
 
-                    if (cols[4] && projectStartDateStr) {
-                        try {
-                            // Cuidado con formatos de fecha locales (ej: MM/DD/YYYY)
-                            // Requerimos parsearlas con "new Date()" que es lo mejor compatible
-                            const taskStartDate = new Date(cols[4]);
-                            const projDate = new Date(projectStartDateStr + "T00:00:00");
+                    const itemNum = cols[0];
+                    const title = cols[1]?.substring(0, 40).toUpperCase() || "SIN TITULO";
+                    const desc = cols[2] || cols[1];
+                    const skillStr = cols[3]?.toUpperCase() === "A&P" ? "AP" : (cols[3]?.toUpperCase() || "AP");
 
-                            if (!isNaN(taskStartDate.getTime()) && !isNaN(projDate.getTime())) {
-                                // Ajustar horas a las 00:00:00 para cálculos precisos
-                                taskStartDate.setHours(0, 0, 0, 0);
-                                projDate.setHours(0, 0, 0, 0);
-                                const diffTimeStart = taskStartDate.getTime() - projDate.getTime();
-                                startDay = Math.max(0, Math.floor(diffTimeStart / (1000 * 60 * 60 * 24)));
+                    const startDay = Math.max(0, parseInt(cols[4]) || 0);
+                    const durationDays = Math.max(1, parseInt(cols[5]) || 1);
 
-                                if (cols[5]) {
-                                    const taskDueDate = new Date(cols[5]);
-                                    if (!isNaN(taskDueDate.getTime())) {
-                                        taskDueDate.setHours(0, 0, 0, 0);
-                                        const diffTimeEnd = taskDueDate.getTime() - taskStartDate.getTime();
-                                        // La duración mínima es 1 día (si termina el mismo día que empieza)
-                                        // Sumamos +1 porque GANTT usa duracion inclusiva (ej: empiza el 2, termina el 2 = 1 dia)
-                                        durationDays = Math.max(1, Math.floor(diffTimeEnd / (1000 * 60 * 60 * 24)) + 1);
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            console.warn("Error calculando fecha para tarea", cols[0], e);
-                        }
-                    }
-
-                    // Calcular horas (Planned Hours) logica opcional si existe cols[8]
-                    let durationHours = 0;
-                    let durationFromHours = 1;
-                    if (cols[8]) {
-                        const planned = parseFloat(cols[8]) || 0;
-                        if (planned > 0) {
-                            durationFromHours = Math.max(1, Math.floor(planned / 8));
-                            durationHours = Math.round(planned % 8);
-                        }
-                    }
-
-                    // Si calculamos las fechas correctas, las favorecemos por encima de las horas estimadas.
-                    const finalDuration = cols[5] ? durationDays : durationFromHours;
+                    // Col 6 is Planned Hours (ignored for timeline calculation as we use DIA DURACION directly)
+                    const addedHours = Math.max(0, parseFloat(cols[7]) || 0);
+                    const progressVal = Math.max(0, Math.min(100, parseInt(cols[8]) || 0));
 
                     tasks.push({
-                        id: cols[0],
-                        title: cols[3].substring(0, 40).toUpperCase(),
-                        description: cols[3],
-                        type: (cols[6] === "A&P" ? "AP" : (cols[6] || "AP")) as Task['type'],
-                        start: startDay, // Empieza en 0-index
-                        startHour: 8,
-                        duration: finalDuration,
-                        durationHours: durationHours,
-                        progress: 0,
-                        project: projectName || "IMPORTADO",
+                        id: `${activeProject}-${itemNum}`,
+                        title: title,
+                        description: desc,
+                        type: skillStr as Task['type'],
+                        start: startDay,
+                        startHour: 8, // Fixed start hour since it was removed
+                        duration: durationDays,
+                        durationHours: addedHours,
+                        progress: progressVal,
+                        project: activeProject,
                         dependencies: []
                     });
                 }
             });
 
-            if (projectName || tasks.length > 0) {
-                const finalProjectName = projectName || `PROJ-${Date.now()}`;
-                if (activeProject === 'ALL') {
-                    onAddProject({
-                        name: finalProjectName,
-                        customer: customer || "CLIENTE_DESCONOCIDO",
-                        ac: ac || "PENDIENTE",
-                        model: model,
-                        msn: msn,
-                        wo: wo || "WO_0000",
-                        lp: lp,
-                        pm: pm,
-                        startDate: projectStartDateStr,
-                        intervalDays: interval
-                    });
-                }
-                onAddTasks(tasks.map(t => ({ ...t, project: finalProjectName })));
-                alert(`IMPORTACIÓN EXITOSA:\nProyecto: ${finalProjectName}\nMetadatos: ${customer} | ${ac} | ${wo}\nTareas cargadas o actualizadas: ${tasks.length}`);
+            if (tasks.length > 0) {
+                onAddTasks(tasks);
+                alert(`IMPORTACIÓN EXITOSA:\nProyecto: ${activeProject}\nTareas cargadas o actualizadas: ${tasks.length}`);
+            } else {
+                alert("No se encontraron tareas válidas en el archivo CSV. Revisa el formato.");
             }
         };
         reader.readAsText(file);
