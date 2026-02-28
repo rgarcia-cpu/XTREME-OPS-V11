@@ -42,7 +42,8 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
                     </div>
                 </div>
 
-                {activeProject !== 'ALL' && activeProjectData && (
+                {/* Detalle o Resumen (Dependiendo de si es ALL o Proyecto Específico) */}
+                {activeProject !== 'ALL' && activeProjectData ? (
                     <div className="mt-6 grid grid-cols-3 gap-6 text-[10px] font-bold uppercase">
                         <div className="bg-gray-50 p-2 border border-gray-300">
                             <span className="text-gray-500 block text-[8px] mb-1">PROYECTO / UNIDAD:</span>
@@ -55,6 +56,23 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
                         <div className="bg-gray-50 p-2 border border-gray-300">
                             <span className="text-gray-500 block text-[8px] mb-1">FECHA INICIO | INTERVALO:</span>
                             <span className="text-xs">{activeProjectData.startDate} | {activeProjectData.intervalDays} DÍAS</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mt-6 grid grid-cols-3 gap-6 text-[10px] font-bold uppercase">
+                        <div className="bg-gray-50 p-2 border border-gray-300">
+                            <span className="text-gray-500 block text-[8px] mb-1">UNIDADES ACTIVAS:</span>
+                            <span className="text-xs">{uniqueProjectsWithTasks.length} PROYECTO(S)</span>
+                        </div>
+                        <div className="bg-gray-50 p-2 border border-gray-300">
+                            <span className="text-gray-500 block text-[8px] mb-1">CLIENTES ACTIVOS:</span>
+                            <span className="text-xs font-black">
+                                {[...new Set(uniqueProjectsWithTasks.map(p => projects[p]?.customer).filter(Boolean))].join(', ') || '-'}
+                            </span>
+                        </div>
+                        <div className="bg-gray-50 p-2 border border-gray-300">
+                            <span className="text-gray-500 block text-[8px] mb-1">TOTAL TAREAS:</span>
+                            <span className="text-xs">{tasks.length} REGISTRADAS</span>
                         </div>
                     </div>
                 )}
