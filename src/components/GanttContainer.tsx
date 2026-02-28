@@ -89,7 +89,9 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
                 >
                     {Array.from({ length: intervalDays }).map((_, i) => {
                         const isToday = Math.floor(todayPos) === i;
-                        const dayDate = new Date(projectStartDate);
+                        // Forzar una fecha fija a mediodía para evitar cualquier desfase de la zona horaria (como T00:00:00 vs T12:00:00)
+                        const [year, month, day] = projectStartDate.split('T')[0].split('-');
+                        const dayDate = new Date(Number(year), Number(month) - 1, Number(day), 12, 0, 0);
                         dayDate.setDate(dayDate.getDate() + i);
                         const dayNames = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
                         const dayInitial = dayNames[dayDate.getDay()];
@@ -99,7 +101,7 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
                                 key={i}
                                 className={`flex-none w-[60px] flex flex-col items-center justify-center border-r border-white/5 text-[10px] ${isToday ? 'bg-red-500/10' : ''}`}
                             >
-                                <span className={`text-[7px] opacity-70 uppercase ${isToday ? 'text-red-400 font-black' : 'text-slate-500'}`}>
+                                <span className={`text-[9px] opacity-100 uppercase font-bold ${isToday ? 'text-red-400 font-black' : 'text-slate-400'}`}>
                                     {dayInitial}
                                 </span>
                                 <span className={`text-[12px] font-bold leading-none ${isToday ? 'text-red-500' : 'text-slate-300'}`}>{i + 1}</span>

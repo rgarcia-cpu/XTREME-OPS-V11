@@ -32,7 +32,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
             if (!text) return;
 
             const lines = text.split('\n');
-            let currentProjectData = projects[activeProject];
+            const currentProjectData = projects[activeProject];
 
             let projectName = activeProject !== 'ALL' ? activeProject : "";
             let customer = currentProjectData?.customer || "";
@@ -65,7 +65,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                         if (match) interval = parseInt(match[1]);
                     }
                     if (line.includes("TASK start:")) {
-                        const match = line.match(/TASK start:\s*([\d\/\-]+)/);
+                        const match = line.match(/TASK start:\s*([\d/-]+)/);
                         if (match) projectStartDateStr = match[1];
                     }
                 }
@@ -76,18 +76,45 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                 }
 
                 if (taskTableStarted && cols[0] && cols[3]) {
-                    // Lógica de cálculo de fecha por metadato (Día de inicio relativo a la fecha del proyecto)
-                    // Si el CSV tiene una fecha específica por tarea, la usamos. 
-                    // Asumimos que cols[11] es la fecha de inicio de la tarea (puedes variar según el CSV)
+                    // Según la imagen del CSV las columnas son:
+                    // 0: ITEM#, 1: CATEGORY, 2: REMARKS, 3: DESCRIPTION
+                    // 4: Start Date, 5: Due Date, 6: SKILL, 7: Responsible
+                    // 8: PLANNED HOURS, 9: ADD HOURS
+
                     let startDay = 0;
-                    if (cols[11] && projectStartDateStr) {
+                    let durationDays = 1;
+
+                    if (cols[4] && projectStartDateStr) {
                         try {
-                            const taskDate = new Date(cols[11]);
+                            const taskStartDate = new Date(cols[4]);
                             const projDate = new Date(projectStartDateStr);
-                            const diffTime = Math.abs(taskDate.getTime() - projDate.getTime());
-                            startDay = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            const diffTimeStart = taskStartDate.getTime() - projDate.getTime();
+                            startDay = Math.max(0, Math.ceil(diffTimeStart / (1000 * 60 * 60 * 24)));
+
+                            if (cols[5]) {
+                                const taskDueDate = new Date(cols[5]);
+                                const diffTimeEnd = taskDueDate.getTime() - taskStartDate.getTime();
+                                durationDays = Math.max(1, Math.ceil(diffTimeEnd / (1000 * 60 * 60 * 24)));
+                                // Si due date == start date durationDays sería 0, pero con el max(1) se arregla
+                                if (taskDueDate.getTime() === taskStartDate.getTime()) durationDays = 1;
+                            }
                         } catch (e) { startDay = 0; }
                     }
+
+                    // Calcular horas (Planned Hours)
+                    let durationHours = 0;
+                    let durationFromHours = 1;
+                    if (cols[8]) {
+                        const planned = parseFloat(cols[8]) || 0;
+                        if (planned > 0) {
+                            durationFromHours = Math.max(1, Math.floor(planned / 8));
+                            durationHours = Math.round(planned % 8);
+                        }
+                    }
+
+                    // Si tenemos fechas, usamos durationDays. Si tenemos PLANNED HOURS (pero durationDays == 1 por defecto), talvez las horas dominan.
+                    // Priorizamos la duración en días calculada por "Due Date" - "Start Date". Si es 1 dia, podemos complementar con "durationHours".
+                    const finalDuration = durationDays > 1 ? durationDays : durationFromHours;
 
                     tasks.push({
                         id: cols[0],
@@ -96,8 +123,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                         type: (cols[6] === "A&P" ? "AP" : (cols[6] || "AP")) as Task['type'],
                         start: startDay,
                         startHour: 8,
-                        duration: Math.max(1, Math.floor((parseFloat(cols[8]) || 1) / 8)),
-                        durationHours: Math.round((parseFloat(cols[8]) || 0) % 8),
+                        duration: finalDuration,
+                        durationHours: durationHours,
                         progress: 0,
                         project: projectName || "IMPORTADO",
                         dependencies: []

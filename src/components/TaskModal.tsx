@@ -73,7 +73,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                 <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
                     {/* Título */}
                     <div>
-                        <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Título de la Tarea</label>
+                        <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">DISCREPANCY</label>
                         <input
                             name="title"
                             value={formData.title}
@@ -86,7 +86,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     {/* Descripción Larga (para Tooltip) */}
                     <div>
                         <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block flex items-center gap-2">
-                            Descripción Operativa <Info className="w-2.5 h-2.5 opacity-50" />
+                            DESCRIPCIÓN DE LA TAREA <Info className="w-2.5 h-2.5 opacity-50" />
                         </label>
                         <textarea
                             name="description"
@@ -100,7 +100,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Tipo / Especialidad</label>
+                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">SKILL</label>
                             <select
                                 name="type"
                                 value={formData.type}
@@ -114,7 +114,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Proyecto (Sector)</label>
+                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">GRUPO/PERTENECE</label>
                             <select
                                 name="project"
                                 value={formData.project}
@@ -185,7 +185,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label htmlFor="progress-slider" className="text-[10px] text-cyan-500 uppercase font-black block">Logro Alcanzado: {formData.progress}%</label>
+                            <label htmlFor="progress-slider" className="text-[10px] text-cyan-500 uppercase font-black block">Avance de Tarea: {formData.progress}%</label>
                         </div>
                         <input
                             id="progress-slider"

@@ -248,7 +248,7 @@ const App: React.FC = () => {
   // RENDER
   // ────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen w-screen bg-bg-main overflow-hidden text-slate-100 font-mono selection:bg-cyan-500/30">
+    <div className="flex h-screen w-full bg-bg-main overflow-hidden text-slate-100 font-mono selection:bg-cyan-500/30">
       {/* Scanning Line Animation Layer */}
       <div className="scanning-line print:hidden"></div>
 
@@ -263,8 +263,7 @@ const App: React.FC = () => {
       {/* Main Command Area */}
       <main className="flex-1 flex flex-col relative min-w-0 print:hidden">
 
-        {/* Top Telemetry & Control Bar */}
-        <header className="h-16 border-b border-cyan-500/30 flex items-center justify-between px-6 bg-slate-950/50 backdrop-blur-md z-30 flex-none print:hidden">
+        <header className="h-16 border-b border-cyan-500/30 flex items-center justify-between px-4 sm:px-6 bg-slate-950/50 backdrop-blur-md z-30 flex-none print:hidden overflow-x-auto whitespace-nowrap custom-scrollbar">
           <div className="flex items-center gap-4 flex-none">
             <div className="w-10 h-10 rounded bg-cyan-500/10 border border-cyan-500/50 flex items-center justify-center animate-pulse">
               <Crosshair className="text-cyan-400 w-6 h-6" />
@@ -279,7 +278,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 max-w-sm mx-10 relative group hidden sm:block">
+          <div className="flex-1 max-w-sm mx-4 sm:mx-10 relative group hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
             <input
               type="text"
@@ -293,10 +292,10 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3 flex-none">
             {/* Cloud Sync Indicator */}
             <div className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded border text-[8px] font-black uppercase tracking-widest transition-all ${syncStatus === 'online'
-                ? 'border-green-500/30 bg-green-500/5 text-green-400'
-                : syncStatus === 'loading'
-                  ? 'border-yellow-500/30 bg-yellow-500/5 text-yellow-400 animate-pulse'
-                  : 'border-red-500/30 bg-red-500/5 text-red-400'
+              ? 'border-green-500/30 bg-green-500/5 text-green-400'
+              : syncStatus === 'loading'
+                ? 'border-yellow-500/30 bg-yellow-500/5 text-yellow-400 animate-pulse'
+                : 'border-red-500/30 bg-red-500/5 text-red-400'
               }`}>
               {syncStatus === 'online'
                 ? <Cloud className="w-3 h-3" />
@@ -357,7 +356,7 @@ const App: React.FC = () => {
         </header>
 
         {/* HUD Sub-header */}
-        <div className="h-8 flex-none bg-slate-900/30 border-b border-white/5 flex items-center px-6 justify-between overflow-hidden print:hidden">
+        <div className="h-8 flex-none bg-slate-900/30 border-b border-white/5 flex items-center px-4 sm:px-6 justify-between overflow-x-auto custom-scrollbar print:hidden">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Layers className="w-3 h-3 text-cyan-500/50" />
