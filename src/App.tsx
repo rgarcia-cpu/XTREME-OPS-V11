@@ -264,8 +264,8 @@ const App: React.FC = () => {
 
         <header className="h-16 border-b border-cyan-500/30 flex items-center justify-between px-4 sm:px-6 bg-slate-950/50 backdrop-blur-md z-30 flex-none print:hidden overflow-x-auto whitespace-nowrap custom-scrollbar">
           <div className="flex items-center gap-4 flex-none">
-            <div className="flex items-center justify-center">
-              <img src="/logo_xtreme.png" alt="X-TREME AVIATION" className="h-12 w-auto object-contain" />
+            <div className="w-10 h-10 rounded bg-cyan-500/10 border border-cyan-500/50 flex items-center justify-center animate-pulse">
+              <Activity className="text-cyan-400 w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xs font-black tracking-[0.2em] text-cyan-500 uppercase">Strategic_Interior_Ops_v11</h1>
