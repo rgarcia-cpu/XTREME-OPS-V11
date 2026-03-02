@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
-  Crosshair,
   Settings,
   Printer,
   Activity,

@@ -18,7 +18,7 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
         }
 
         const projects: Record<string, Project> = {};
-        (projectsData || []).forEach((p: any) => {
+        (projectsData || []).forEach((p) => {
             projects[p.name] = {
                 name: p.name,
                 customer: p.customer,
@@ -33,7 +33,7 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
             };
         });
 
-        const tasks: Task[] = (tasksData || []).map((t: any) => ({
+        const tasks: Task[] = (tasksData || []).map((t) => ({
             id: t.id,
             title: t.title,
             description: t.description ?? '',

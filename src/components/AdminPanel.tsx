@@ -116,7 +116,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                 name: '',
                 customer: '',
                 ac: '',
+                model: '',
+                msn: '',
                 wo: '',
+                lp: '',
+                pm: '',
                 startDate: new Date().toISOString().split('T')[0],
                 intervalDays: 45
             });

@@ -1,4 +1,4 @@
-import type { Task, AppState } from './types';
+import type { Task, AppState, TaskType } from './types';
 
 /**
  * Optimiza la búsqueda utilizando un Map para eficiencia O(n).
@@ -6,7 +6,7 @@ import type { Task, AppState } from './types';
  */
 export const recalculateTaskDates = (tasks: Task[]): Task[] => {
     // Asegurar unicidad por ID antes de procesar
-    const uniqueMap = new Map();
+    const uniqueMap = new Map<string, Task>();
     tasks.forEach(t => uniqueMap.set(t.id, t));
     const uniqueTasks = Array.from(uniqueMap.values());
 
@@ -53,7 +53,7 @@ export const recalculateTaskDates = (tasks: Task[]): Task[] => {
 
 export const generateStressData = (count: number): Task[] => {
     const tasks: Task[] = [];
-    const types: ('AP' | 'INT' | 'AVI' | 'SM')[] = ['AP', 'INT', 'AVI', 'SM'];
+    const types: TaskType[] = ['AP', 'INT', 'AVI', 'SM'];
 
     for (let i = 0; i < count; i++) {
         tasks.push({
