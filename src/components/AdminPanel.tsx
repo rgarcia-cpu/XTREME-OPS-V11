@@ -63,35 +63,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                     // 0: ITEM# (id)
                     // 1: DISCREPANCY (title)
                     // 2: DESCRIPTION LARGA (description)
-                    // 3: SKILL (type)
-                    // 4: DIA INI (start)
-                    // 5: DIA DURACION (duration)
-                    // 6: PLANNED HOURS (No se usa directamente en la DB pero podría ser base duracion, aqui tomamos duration normal o usamos Planned/8)
-                    // 7: ADD HOURS (durationHours)
-                    // 8: AVANCE (progress)
+                    // 3: DIA INI (start)
+                    // 4: DURACION (duration)
 
                     const itemNum = cols[0];
-                    const title = cols[1]?.substring(0, 40).toUpperCase() || "SIN TITULO";
+                    const title = cols[1]?.substring(0, 50).toUpperCase() || "SIN TITULO";
                     const desc = cols[2] || cols[1];
-                    const skillStr = cols[3]?.toUpperCase() === "A&P" ? "AP" : (cols[3]?.toUpperCase() || "AP");
-
-                    const startDay = Math.max(0, parseInt(cols[4]) || 0);
-                    const durationDays = Math.max(1, parseInt(cols[5]) || 1);
-
-                    // Col 6 is Planned Hours (ignored for timeline calculation as we use DIA DURACION directly)
-                    const addedHours = Math.max(0, parseFloat(cols[7]) || 0);
-                    const progressVal = Math.max(0, Math.min(100, parseInt(cols[8]) || 0));
+                    const startDay = Math.max(1, parseInt(cols[3]) || 1);
+                    const durationDays = Math.max(1, parseInt(cols[4]) || 1);
 
                     tasks.push({
                         id: `${activeProject}-${itemNum}`,
                         title: title,
                         description: desc,
-                        type: skillStr as Task['type'],
+                        type: 'INT', // Default Skill
                         start: startDay,
-                        startHour: 8, // Fixed start hour since it was removed
                         duration: durationDays,
-                        durationHours: addedHours,
-                        progress: progressVal,
+                        progress: 0,
                         project: activeProject,
                         dependencies: []
                     });

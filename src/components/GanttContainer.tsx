@@ -113,9 +113,9 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
                 {/* Task Grid Area */}
                 <div className="relative">
                     {visibleTasks.map((task) => {
-                        // Calcular posición exacta considerando horas
-                        const startPos = (task.start * 24 + task.startHour) / 24 * DAY_WIDTH;
-                        const widthPos = (task.duration * 24 + task.durationHours) / 24 * DAY_WIDTH;
+                        // Calcular posición exacta (Día 1 = 0px, Día 2 = 60px...)
+                        const startPos = (task.start - 1) * DAY_WIDTH;
+                        const widthPos = task.duration * DAY_WIDTH;
 
                         return (
                             <div

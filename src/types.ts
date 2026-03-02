@@ -5,10 +5,8 @@ export interface Task {
     title: string;
     description: string; // Para el tooltip de descripción larga
     type: TaskType;
-    start: number; // Día relativo (entero)
-    startHour: number; // Hora de inicio (0-23)
+    start: number; // Día relativo (entero, base 1)
     duration: number; // Duración en días (entero)
-    durationHours: number; // Duración extra en horas (entero)
     progress: number;
     project: string;
     dependencies: string[]; // IDs de tareas de las que depende

@@ -26,10 +26,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
         title: '',
         description: '',
         type: 'AP',
-        start: 0,
-        startHour: 8,
+        start: 1,
         duration: 1,
-        durationHours: 0,
         progress: 0,
         project: activeProject !== 'ALL' ? activeProject : (projects[0] || 'DEFAULT'),
         dependencies: []
@@ -39,9 +37,10 @@ const TaskModal: React.FC<TaskModalProps> = ({
         const { name, value } = e.target;
 
         // Validación de enteros para campos numéricos
-        if (['start', 'startHour', 'duration', 'durationHours', 'progress'].includes(name)) {
+        if (['start', 'duration', 'progress'].includes(name)) {
             const num = Math.floor(Number(value));
-            setFormData(prev => ({ ...prev, [name]: isNaN(num) ? 0 : num }));
+            const finalVal = name === 'start' ? Math.max(1, num) : Math.max(0, num);
+            setFormData(prev => ({ ...prev, [name]: isNaN(num) ? (name === 'start' ? 1 : 0) : finalVal }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -127,59 +126,29 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
-                        <div className="space-y-3">
-                            <div>
-                                <label htmlFor="start-day" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Día Ini</label>
-                                <input
-                                    id="start-day"
-                                    type="number"
-                                    name="start"
-                                    min="0"
-                                    value={formData.start}
-                                    onChange={handleChange}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="start-hour" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Hora Ini (0-23)</label>
-                                <input
-                                    id="start-hour"
-                                    type="number"
-                                    name="startHour"
-                                    min="0"
-                                    max="23"
-                                    value={formData.startHour}
-                                    onChange={handleChange}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
-                                />
-                            </div>
+                        <div>
+                            <label htmlFor="start-day" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Día Ini</label>
+                            <input
+                                id="start-day"
+                                type="number"
+                                name="start"
+                                min="1"
+                                value={formData.start}
+                                onChange={handleChange}
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
+                            />
                         </div>
-                        <div className="space-y-3">
-                            <div>
-                                <label htmlFor="duration-days" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Días Duración</label>
-                                <input
-                                    id="duration-days"
-                                    type="number"
-                                    name="duration"
-                                    min="0"
-                                    value={formData.duration}
-                                    onChange={handleChange}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="duration-hours" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Horas Extra</label>
-                                <input
-                                    id="duration-hours"
-                                    type="number"
-                                    name="durationHours"
-                                    min="0"
-                                    max="23"
-                                    value={formData.durationHours}
-                                    onChange={handleChange}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
-                                />
-                            </div>
+                        <div>
+                            <label htmlFor="duration-days" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Días Duración</label>
+                            <input
+                                id="duration-days"
+                                type="number"
+                                name="duration"
+                                min="1"
+                                value={formData.duration}
+                                onChange={handleChange}
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
+                            />
                         </div>
                     </div>
 

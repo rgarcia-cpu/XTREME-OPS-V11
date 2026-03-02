@@ -116,9 +116,9 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
                             <tbody>
                                 {projTasks.map((task) => (
                                     <tr key={task.id} className="break-inside-avoid">
-                                        <td className="border border-black p-2 font-black whitespace-nowrap">DÍA {task.start + 1}</td>
+                                        <td className="border border-black p-2 font-black whitespace-nowrap">DÍA {task.start}</td>
                                         <td className="border border-black p-2 font-bold whitespace-nowrap">
-                                            {task.duration} d {task.durationHours > 0 ? `| ${task.durationHours} h` : ''}
+                                            {task.duration} d
                                         </td>
                                         <td className="border border-black p-2 font-black text-center">{task.progress}%</td>
                                         <td className="border border-black p-2">

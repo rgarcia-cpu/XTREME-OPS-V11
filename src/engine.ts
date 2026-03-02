@@ -22,23 +22,27 @@ export const recalculateTaskDates = (tasks: Task[]): Task[] => {
 
         for (let i = 0; i < updatedTasks.length; i++) {
             const task = updatedTasks[i];
+
+            // Forzar inicio mínimo en Día 1
+            if (task.start < 1) {
+                task.start = 1;
+                changed = true;
+            }
+
             if (task.dependencies.length === 0) continue;
 
-            let maxDependencyEndInHours = 0;
+            let maxDependencyEnd = 1;
             task.dependencies.forEach((depId: string) => {
                 const dep = taskMap.get(depId);
                 if (dep) {
-                    const depEndInHours = (dep.start * 24 + dep.startHour) + (dep.duration * 24 + dep.durationHours);
-                    if (depEndInHours > maxDependencyEndInHours) maxDependencyEndInHours = depEndInHours;
+                    const depEnd = dep.start + dep.duration;
+                    if (depEnd > maxDependencyEnd) maxDependencyEnd = depEnd;
                 }
             });
 
-            const currentTaskStartInHours = task.start * 24 + task.startHour;
-
-            if (currentTaskStartInHours < maxDependencyEndInHours) {
-                // Mover al punto más temprano disponible
-                task.start = Math.floor(maxDependencyEndInHours / 24);
-                task.startHour = maxDependencyEndInHours % 24;
+            if (task.start < maxDependencyEnd) {
+                // Mover al día inmediatamente posterior al fin de la dependencia
+                task.start = maxDependencyEnd;
                 changed = true;
             }
         }
@@ -57,10 +61,8 @@ export const generateStressData = (count: number): Task[] => {
             title: `TAREA TÁCTICA AUTOMATIZADA #${i}`,
             description: `DETALLE OPERATIVO PARA LA TAREA #${i}: PROCEDIMIENTO ESTÁNDAR DE VERIFICACIÓN Y CONTROL PARA X-TREME AVIATION CORP.`,
             type: types[i % 4],
-            start: Math.floor(i / 10),
-            startHour: 8,
+            start: Math.floor(i / 10) + 1,
             duration: 2 + (i % 5),
-            durationHours: 0,
             progress: Math.floor(Math.random() * 100),
             project: 'STRESS-UNIT',
             dependencies: i > 0 ? [`stress-${i - 1}`] : []
@@ -83,10 +85,8 @@ export const loadState = (): AppState => {
             title: 'INSPECCIÓN ESTRUCTURAL FUSELAJE',
             description: 'REVISIÓN COMPLETA DE REMACHES Y PANELES DE ACCESO SEGÚN MANUAL DE MANTENIMIENTO.',
             type: 'AP',
-            start: 0,
-            startHour: 7,
+            start: 1,
             duration: 5,
-            durationHours: 0,
             progress: 100,
             project: 'UNIT-A22',
             dependencies: []
@@ -96,10 +96,8 @@ export const loadState = (): AppState => {
             title: 'DESMONTAJE DE INTERIORES',
             description: 'RETIRO DE ASIENTOS, ALFOMBRAS Y PANELES LATERALES PARA ACCESO A CABLEADO.',
             type: 'INT',
-            start: 5,
-            startHour: 8,
+            start: 6,
             duration: 3,
-            durationHours: 4,
             progress: 60,
             project: 'UNIT-A22',
             dependencies: ['1']
@@ -109,10 +107,8 @@ export const loadState = (): AppState => {
             title: 'UPGRADE AVIONICS G1000',
             description: 'INSTALACIÓN DE NUEVOS DISPLAYS Y CONFIGURACIÓN DE SISTEMA DE NAVEGACIÓN TÁCTICA.',
             type: 'AVI',
-            start: 8,
-            startHour: 9,
+            start: 9,
             duration: 10,
-            durationHours: 0,
             progress: 10,
             project: 'UNIT-A22',
             dependencies: ['2']
