@@ -47,34 +47,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
 
             lines.forEach((line) => {
                 const rawLine = line.trim();
-                if (!rawLine) return; // Ignore empty lines
+                if (!rawLine) return;
 
-                // regex para manejar celdas con comas dentro de comillas
-                const cols = (rawLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [])
-                    .map(c => c.trim().replace(/^"|"$/g, ''));
+                // Función de parsing robusta para CSV de Excel
+                const finalCols: string[] = [];
+                let cur = "";
+                let inQuote = false;
+                for (let i = 0; i < rawLine.length; i++) {
+                    const char = rawLine[i];
+                    if (char === '"') inQuote = !inQuote;
+                    else if (char === ',' && !inQuote) {
+                        finalCols.push(cur.trim().replace(/^"|"$/g, ''));
+                        cur = "";
+                    } else cur += char;
+                }
+                finalCols.push(cur.trim().replace(/^"|"$/g, ''));
 
-                // Si no coincide la regex, intentar con split básico pero con limpieza
-                const finalCols = cols.length >= 5 ? cols : rawLine.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-
-                // Buscar encabezado y saltear si es necesario
-                if (finalCols[0] && finalCols[0].toUpperCase().includes("ITEM#")) {
+                // Buscar encabezado
+                if (!headerFound && finalCols[0]?.toUpperCase().includes("ITEM#")) {
                     headerFound = true;
                     return;
                 }
 
-                // Si ya pasamos el encabezado y hay datos suficientes
+                // Si ya pasamos el encabezado y hay datos
                 if (headerFound && finalCols.length >= 5) {
-                    const itemNum = finalCols[0];
-                    const title = finalCols[1]?.substring(0, 50).toUpperCase() || "SIN TITULO";
+                    const itemNum = finalCols[0] || `T-${Date.now()}`;
+                    const title = finalCols[1]?.substring(0, 100).toUpperCase() || "SIN TITULO";
                     const desc = finalCols[2] || finalCols[1];
                     const startDay = Math.max(1, parseInt(finalCols[3]) || 1);
                     const durationDays = Math.max(1, parseInt(finalCols[4]) || 1);
 
                     tasks.push({
                         id: `${activeProject}-${itemNum}`,
+                        itemNumber: itemNum,
                         title: title,
                         description: desc,
-                        type: 'INT', // Default Skill
+                        type: 'INT',
                         start: startDay,
                         duration: durationDays,
                         progress: 0,

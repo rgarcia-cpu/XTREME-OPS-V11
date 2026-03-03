@@ -2,6 +2,7 @@ export type TaskType = 'INT' | 'AVI' | 'AP' | 'SM';
 
 export interface Task {
     id: string;
+    itemNumber: string; // El número de item del CSV (ej. 25-105-00-01)
     title: string;
     description: string; // Para el tooltip de descripción larga
     type: TaskType;

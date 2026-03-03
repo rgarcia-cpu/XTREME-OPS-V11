@@ -23,6 +23,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
 }) => {
     const [formData, setFormData] = useState<Task>(() => task || {
         id: `task-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        itemNumber: '',
         title: '',
         description: '',
         type: 'AP',
@@ -70,16 +71,27 @@ const TaskModal: React.FC<TaskModalProps> = ({
 
                 {/* Content */}
                 <div className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
-                    {/* Título */}
-                    <div>
-                        <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">DISCREPANCY</label>
-                        <input
-                            name="title"
-                            value={formData.title}
-                            onChange={handleChange}
-                            placeholder="Ej. INSPECCIÓN TÉCNICA..."
-                            className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none transition-all placeholder:text-slate-700"
-                        />
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-1">
+                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">ITEM#</label>
+                            <input
+                                name="itemNumber"
+                                value={formData.itemNumber || ''}
+                                onChange={handleChange}
+                                placeholder="EJ. 25-030..."
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none transition-all placeholder:text-slate-700"
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">DISCREPANCY</label>
+                            <input
+                                name="title"
+                                value={formData.title}
+                                onChange={handleChange}
+                                placeholder="Ej. INSPECCIÓN TÉCNICA..."
+                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none transition-all placeholder:text-slate-700"
+                            />
+                        </div>
                     </div>
 
                     {/* Descripción Larga (para Tooltip) */}
@@ -113,12 +125,13 @@ const TaskModal: React.FC<TaskModalProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">GRUPO/PERTENECE</label>
+                            <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block text-slate-400">PROYECTO / AVIÓN</label>
                             <select
                                 name="project"
+                                disabled
                                 value={formData.project}
                                 onChange={handleChange}
-                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none"
+                                className="w-full bg-slate-950/50 border border-slate-800 rounded p-2 text-xs text-slate-500 outline-none cursor-not-allowed"
                             >
                                 {projects.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>

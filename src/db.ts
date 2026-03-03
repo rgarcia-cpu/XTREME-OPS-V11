@@ -35,6 +35,7 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
 
         const tasks: Task[] = (tasksData || []).map((t) => ({
             id: t.id,
+            itemNumber: t.item_number || t.id.split('-').pop() || '',
             title: t.title,
             description: t.description ?? '',
             type: t.type,
@@ -86,6 +87,7 @@ export const deleteProjectFromCloud = async (name: string) => {
 export const saveTaskToCloud = async (task: Task) => {
     const { error } = await supabase.from('tasks').upsert({
         id: task.id,
+        item_number: task.itemNumber,
         title: task.title,
         description: task.description,
         type: task.type,
@@ -107,6 +109,7 @@ export const saveAllTasksToCloud = async (tasks: Task[]) => {
     if (tasks.length === 0) return;
     const rows = tasks.map(task => ({
         id: task.id,
+        item_number: task.itemNumber,
         title: task.title,
         description: task.description,
         type: task.type,
