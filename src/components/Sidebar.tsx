@@ -15,8 +15,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeProject, setActiveProject, proj
         <aside className={`w-64 flex-none bg-slate-950/80 border-r border-cyan-900/30 flex flex-col z-40 backdrop-blur-md ${className || ''}`}>
             <div className="p-4 border-b border-cyan-900/20">
                 <div className="flex flex-col items-center mb-6">
-                    <img src="/logo_xtreme.png" alt="X-TREME AVIATION" className="w-full max-w-[200px] h-auto object-contain mb-2 px-2" />
-                    <label className="text-[9px] text-cyan-500 font-black uppercase block tracking-widest text-center w-full">
+                    <div className="relative w-full flex justify-center group">
+                        {/* Contenedor de contraste con efecto glassmorphism para que el logo resalte */}
+                        <div className="absolute inset-0 bg-white/5 backdrop-blur-md rounded-xl border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.5)]"></div>
+                        <img
+                            src="/logo_xtreme.png"
+                            alt="X-TREME AVIATION"
+                            className="relative w-full max-w-[170px] h-auto object-contain p-4 drop-shadow-[0_8px_16px_rgba(0,0,0,0.5)] brightness-125 contrast-125"
+                        />
+                    </div>
+                    <label className="text-[9px] text-cyan-500 font-black uppercase block tracking-widest text-center w-full mt-2">
                         GESTIÓN DE PROYECTOS
                     </label>
                 </div>
