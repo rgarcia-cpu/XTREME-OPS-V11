@@ -49,28 +49,26 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                 const rawLine = line.trim();
                 if (!rawLine) return; // Ignore empty lines
 
-                const cols = rawLine.split(',').map(c => c.trim().replace(/"/g, ''));
+                // regex para manejar celdas con comas dentro de comillas
+                const cols = (rawLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [])
+                    .map(c => c.trim().replace(/^"|"$/g, ''));
+
+                // Si no coincide la regex, intentar con split básico pero con limpieza
+                const finalCols = cols.length >= 5 ? cols : rawLine.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
 
                 // Buscar encabezado y saltear si es necesario
-                if (cols[0].toUpperCase().includes("ITEM#")) {
+                if (finalCols[0] && finalCols[0].toUpperCase().includes("ITEM#")) {
                     headerFound = true;
                     return;
                 }
 
-                // Si ya pasamos el encabezado y hay al menos 2 columnas
-                if (headerFound && cols[0] && cols[1]) {
-                    // EXPECTED COLUMNS:
-                    // 0: ITEM# (id)
-                    // 1: DISCREPANCY (title)
-                    // 2: DESCRIPTION LARGA (description)
-                    // 3: DIA INI (start)
-                    // 4: DURACION (duration)
-
-                    const itemNum = cols[0];
-                    const title = cols[1]?.substring(0, 50).toUpperCase() || "SIN TITULO";
-                    const desc = cols[2] || cols[1];
-                    const startDay = Math.max(1, parseInt(cols[3]) || 1);
-                    const durationDays = Math.max(1, parseInt(cols[4]) || 1);
+                // Si ya pasamos el encabezado y hay datos suficientes
+                if (headerFound && finalCols.length >= 5) {
+                    const itemNum = finalCols[0];
+                    const title = finalCols[1]?.substring(0, 50).toUpperCase() || "SIN TITULO";
+                    const desc = finalCols[2] || finalCols[1];
+                    const startDay = Math.max(1, parseInt(finalCols[3]) || 1);
+                    const durationDays = Math.max(1, parseInt(finalCols[4]) || 1);
 
                     tasks.push({
                         id: `${activeProject}-${itemNum}`,
