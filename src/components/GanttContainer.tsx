@@ -59,7 +59,7 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
         const end = Math.min(tasks.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER);
 
         return tasks.slice(start, end).map((task, index) => ({
-            ...task,
+            task,
             displayIndex: start + index
         }));
     }, [tasks, scrollTop, containerHeight]);
@@ -112,7 +112,8 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
 
                 {/* Task Grid Area */}
                 <div className="relative">
-                    {visibleTasks.map((task) => {
+                    {visibleTasks.map((vTask) => {
+                        const { task, displayIndex } = vTask;
                         // Calcular posición exacta (Día 1 = 0px, Día 2 = 60px...)
                         const startPos = (task.start - 1) * DAY_WIDTH;
                         const widthPos = task.duration * DAY_WIDTH;
@@ -121,7 +122,7 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
                             <div
                                 key={task.id}
                                 className={`absolute left-0 w-full h-[48px] border-b border-white/5 group transition-all hover:bg-white/[0.02] ${hoveredTask === task.id ? 'z-50' : 'z-0'}`}
-                                style={{ top: `${task.displayIndex * ROW_HEIGHT}px` }}
+                                style={{ top: `${displayIndex * ROW_HEIGHT}px` }}
                                 onMouseEnter={() => setHoveredTask(task.id)}
                                 onMouseLeave={() => setHoveredTask(null)}
                             >

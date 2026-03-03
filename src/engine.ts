@@ -58,6 +58,7 @@ export const generateStressData = (count: number): Task[] => {
     for (let i = 0; i < count; i++) {
         tasks.push({
             id: `stress-${i}`,
+            itemNumber: `S-${i}`,
             title: `TAREA TÁCTICA AUTOMATIZADA #${i}`,
             description: `DETALLE OPERATIVO PARA LA TAREA #${i}: PROCEDIMIENTO ESTÁNDAR DE VERIFICACIÓN Y CONTROL PARA X-TREME AVIATION CORP.`,
             type: types[i % 4],
@@ -82,6 +83,7 @@ export const loadState = (): AppState => {
     const initialTasks: Task[] = [
         {
             id: '1',
+            itemNumber: '25-1159',
             title: 'INSPECCIÓN ESTRUCTURAL FUSELAJE',
             description: 'REVISIÓN COMPLETA DE REMACHES Y PANELES DE ACCESO SEGÚN MANUAL DE MANTENIMIENTO.',
             type: 'AP',
@@ -93,6 +95,7 @@ export const loadState = (): AppState => {
         },
         {
             id: '2',
+            itemNumber: '25-030',
             title: 'DESMONTAJE DE INTERIORES',
             description: 'RETIRO DE ASIENTOS, ALFOMBRAS Y PANELES LATERALES PARA ACCESO A CABLEADO.',
             type: 'INT',
@@ -104,6 +107,7 @@ export const loadState = (): AppState => {
         },
         {
             id: '3',
+            itemNumber: '21-031',
             title: 'UPGRADE AVIONICS G1000',
             description: 'INSTALACIÓN DE NUEVOS DISPLAYS Y CONFIGURACIÓN DE SISTEMA DE NAVEGACIÓN TÁCTICA.',
             type: 'AVI',

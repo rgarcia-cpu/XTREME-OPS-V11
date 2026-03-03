@@ -45,7 +45,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
             const tasks: Task[] = [];
             let headerFound = false;
 
-            lines.forEach((line) => {
+            lines.forEach((line, index) => {
                 const rawLine = line.trim();
                 if (!rawLine) return;
 
@@ -71,14 +71,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
 
                 // Si ya pasamos el encabezado y hay datos
                 if (headerFound && finalCols.length >= 5) {
-                    const itemNum = finalCols[0] || `T-${Date.now()}`;
+                    const itemNum = finalCols[0] || `T-${index}`;
                     const title = finalCols[1]?.substring(0, 100).toUpperCase() || "SIN TITULO";
                     const desc = finalCols[2] || finalCols[1];
                     const startDay = Math.max(1, parseInt(finalCols[3]) || 1);
                     const durationDays = Math.max(1, parseInt(finalCols[4]) || 1);
 
                     tasks.push({
-                        id: `${activeProject}-${itemNum}`,
+                        // ID DEBE SER ÚNICO: proyecto + item + número de línea para evitar duplicados en Gantt
+                        id: `${activeProject}-${itemNum}-${index}`,
                         itemNumber: itemNum,
                         title: title,
                         description: desc,
