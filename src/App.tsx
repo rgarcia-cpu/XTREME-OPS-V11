@@ -54,24 +54,29 @@ const App: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       const cloudState = await loadStateFromCloud();
-      if (cloudState && Object.keys(cloudState.projects).length > 0) {
-        setState(cloudState);
-        saveState(cloudState); // sync to localStorage as backup
+      const local = loadState();
+
+      const cloudHasData = cloudState && Object.keys(cloudState.projects).length > 0;
+      const localHasData = Object.keys(local.projects).length > 0;
+
+      if (cloudHasData) {
+        // La nube es la fuente de verdad si tiene datos
+        setState(cloudState!);
+        saveState(cloudState!); // Sync local backup
         setSyncStatus('online');
-      } else {
-        // Offline or empty DB → use localStorage seed and push to cloud
-        const local = loadState();
+      } else if (localHasData) {
+        // Si la nube está vacía pero tenemos datos locales, usamos los locales y subimos
         setState(local);
-        const hasProjects = Object.keys(local.projects).length > 0;
-        if (hasProjects) {
-          for (const proj of Object.values(local.projects)) {
-            await saveProjectToCloud(proj);
-          }
-          await saveAllTasksToCloud(local.tasks);
-          setSyncStatus('online');
-        } else {
-          setSyncStatus('offline');
+        setSyncStatus('online');
+        // Subida en background para no bloquear
+        for (const proj of Object.values(local.projects)) {
+          await saveProjectToCloud(proj);
         }
+        await saveAllTasksToCloud(local.tasks);
+      } else {
+        // Totalmente vacío
+        setState(local);
+        setSyncStatus('offline');
       }
       cloudReady.current = true;
     };

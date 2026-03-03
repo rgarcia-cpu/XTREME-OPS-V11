@@ -15,8 +15,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeProject, setActiveProject, proj
         <aside className={`w-64 flex-none bg-slate-950/80 border-r border-cyan-900/30 flex flex-col z-40 backdrop-blur-md ${className || ''}`}>
             <div className="p-4 border-b border-cyan-900/20">
                 <div className="flex flex-col items-center mb-6">
-                    <img src="/logo_xtreme.png" alt="X-TREME AVIATION" className="w-48 h-auto object-contain mb-4" />
-                    <label className="text-[8px] text-cyan-500 font-black uppercase block tracking-widest text-center w-full">
+                    <img src="/logo_xtreme.png" alt="X-TREME AVIATION" className="w-full max-w-[200px] h-auto object-contain mb-2 px-2" />
+                    <label className="text-[9px] text-cyan-500 font-black uppercase block tracking-widest text-center w-full">
                         GESTIÓN DE PROYECTOS
                     </label>
                 </div>
