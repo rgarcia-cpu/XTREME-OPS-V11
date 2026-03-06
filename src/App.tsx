@@ -419,11 +419,37 @@ const App: React.FC = () => {
             activeProject={state.activeProject}
             onAddProject={handleAddProject}
             onAddTasks={async (newTasks) => {
-              setState(prev => ({
-                ...prev,
-                tasks: recalculateTaskDates([...prev.tasks, ...newTasks])
-              }));
-              await saveAllTasksToCloud(newTasks);
+              let mergedTasksToSave: Task[] = [];
+              setState(prev => {
+                const existingMap = new Map(prev.tasks.map(t => [t.id, t]));
+                mergedTasksToSave = newTasks.map(nt => {
+                  const ex = existingMap.get(nt.id);
+                  if (ex) {
+                    // Update only text properties from CSV, preserve meaningful user edits
+                    return {
+                      ...ex,
+                      title: nt.title,
+                      description: nt.description,
+                      group: ex.group || nt.group, // Keep manually added group if it exists
+                    };
+                  }
+                  return nt;
+                });
+
+                mergedTasksToSave.forEach(t => existingMap.set(t.id, t));
+                const finalTasks = Array.from(existingMap.values());
+
+                return {
+                  ...prev,
+                  tasks: recalculateTaskDates(finalTasks)
+                };
+              });
+
+              // We must save to Supabase AFTER we've computed the merged tasks
+              // to avoid overwriting existing data with blank CSV data.
+              if (mergedTasksToSave.length > 0) {
+                await saveAllTasksToCloud(mergedTasksToSave);
+              }
             }}
             onDeleteProject={handleDeleteProject}
             onClose={() => setIsAdminOpen(false)}
