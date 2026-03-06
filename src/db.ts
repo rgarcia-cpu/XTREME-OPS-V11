@@ -86,7 +86,7 @@ export const deleteProjectFromCloud = async (name: string) => {
 // ─────────────────────────────────────────────
 
 export const saveTaskToCloud = async (task: Task) => {
-    const { error } = await supabase.from('tasks').upsert({
+    const payload: any = {
         id: task.id,
         item_number: task.itemNumber,
         title: task.title,
@@ -98,8 +98,27 @@ export const saveTaskToCloud = async (task: Task) => {
         project: task.project,
         project_group: task.group || '',
         dependencies: task.dependencies,
-    });
-    if (error) console.error('[CLOUD] Error guardando tarea:', error);
+    };
+
+    let { error } = await supabase.from('tasks').upsert(payload);
+
+    if (error && (error.message.includes('project_group') || error.message.includes('column'))) {
+        delete payload.project_group;
+        payload.group = task.group || '';
+        const retryResult = await supabase.from('tasks').upsert(payload);
+        error = retryResult.error;
+
+        if (error && (error.message.includes('group') || error.message.includes('column'))) {
+            delete payload.group;
+            const finalResult = await supabase.from('tasks').upsert(payload);
+            error = finalResult.error;
+        }
+    }
+
+    if (error) {
+        console.error('[CLOUD] Error guardando tarea:', error);
+        alert(`[ ERROR NUBE ] No se guardó la tarea. \nSugerencia: Revisa que todos los campos sean válidos. Detalle del servidor: ${error.message}`);
+    }
 };
 
 export const deleteTaskFromCloud = async (id: string) => {
@@ -109,7 +128,7 @@ export const deleteTaskFromCloud = async (id: string) => {
 
 export const saveAllTasksToCloud = async (tasks: Task[]) => {
     if (tasks.length === 0) return;
-    const rows = tasks.map(task => ({
+    let rows: any[] = tasks.map(task => ({
         id: task.id,
         item_number: task.itemNumber,
         title: task.title,
@@ -122,6 +141,31 @@ export const saveAllTasksToCloud = async (tasks: Task[]) => {
         project_group: task.group || '',
         dependencies: task.dependencies,
     }));
-    const { error } = await supabase.from('tasks').upsert(rows);
-    if (error) console.error('[CLOUD] Error en upsert masivo de tareas:', error);
+
+    let { error } = await supabase.from('tasks').upsert(rows);
+
+    if (error && (error.message.includes('project_group') || error.message.includes('column'))) {
+        rows = rows.map(r => {
+            const nr = { ...r, group: r.project_group };
+            delete nr.project_group;
+            return nr;
+        });
+        const retryResult = await supabase.from('tasks').upsert(rows);
+        error = retryResult.error;
+
+        if (error && (error.message.includes('group') || error.message.includes('column'))) {
+            rows = rows.map(r => {
+                const nr = { ...r };
+                delete nr.group;
+                return nr;
+            });
+            const finalResult = await supabase.from('tasks').upsert(rows);
+            error = finalResult.error;
+        }
+    }
+
+    if (error) {
+        console.error('[CLOUD] Error en upsert masivo de tareas:', error);
+        alert(`[ ERROR MASIVO NUBE ] No se pudieron guardar las tareas actualizadas. \nDetalle: ${error.message}`);
+    }
 };

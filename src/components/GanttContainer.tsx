@@ -282,25 +282,28 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
                                         </span>
                                     </div>
 
-                                    {/* Tooltip táctico */}
-                                    {hoveredTask === task.id && task.description && (
-                                        <div className="absolute top-10 left-0 w-64 p-3 bg-slate-900 border border-cyan-500/50 rounded-lg shadow-2xl z-50 animate-in fade-in zoom-in duration-200 backdrop-blur-xl">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Info className="w-3 h-3 text-cyan-400" />
-                                                <span className="text-[9px] font-black text-cyan-500 uppercase tracking-widest">Detalle Operativo</span>
-                                            </div>
-                                            <p className="text-[10px] text-slate-300 font-bold leading-relaxed whitespace-pre-wrap">
-                                                {task.description}
-                                            </p>
-                                            <div className="mt-2 pt-2 border-t border-white/5 flex justify-between items-center text-[8px] text-slate-500 uppercase font-black">
-                                                <span>{task.type} DEP {row.isChild ? `| ZONA: ${task.group}` : ''}</span>
-                                                <span className="text-cyan-500">{task.progress}% COMPLETO</span>
-                                            </div>
-                                        </div>
-                                    )}
-
                                     <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-cyan-400 animate-ping opacity-0 group-hover:opacity-100" />
                                 </div>
+
+                                {/* Tooltip táctico movido fuera del contenedor con overflow-hidden */}
+                                {hoveredTask === task.id && task.description && (
+                                    <div
+                                        className="absolute top-10 p-3 bg-slate-900 border border-cyan-500/50 rounded-lg shadow-2xl z-50 animate-in fade-in zoom-in duration-200 backdrop-blur-xl"
+                                        style={{ left: `${Math.max(0, startPos)}px`, minWidth: '16rem', maxWidth: '24rem' }}
+                                    >
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Info className="w-3 h-3 text-cyan-400" />
+                                            <span className="text-[9px] font-black text-cyan-500 uppercase tracking-widest">Detalle Operativo</span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-300 font-bold leading-relaxed whitespace-pre-wrap">
+                                            {task.description}
+                                        </p>
+                                        <div className="mt-2 pt-2 border-t border-white/5 flex justify-between items-center text-[8px] text-slate-500 uppercase font-black">
+                                            <span>{task.type} DEP {row.isChild ? `| ZONA: ${task.group}` : ''}</span>
+                                            <span className="text-cyan-500">{task.progress}% COMPLETO</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
