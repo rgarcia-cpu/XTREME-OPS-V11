@@ -44,6 +44,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
 
             const tasks: Task[] = [];
             let headerFound = false;
+            let headerIdxItem = 0, headerIdxDesc = 1, headerIdxStart = 3, headerIdxDur = 4, headerIdxGroup = -1;
 
             lines.forEach((line, index) => {
                 const rawLine = line.trim();
@@ -63,9 +64,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                 }
                 finalCols.push(cur.trim().replace(/^"|"$/g, ''));
 
-                // Buscar encabezados (Item, Title, Desc, Start, Duration, Grupo)
-                let headerIdxItem = 0, headerIdxDesc = 1, headerIdxStart = 3, headerIdxDur = 4, headerIdxGroup = -1;
-
+                // Si no hemos encontrado los encabezados, buscarlos
                 if (!headerFound && finalCols.some(c => c.toUpperCase().includes("ITEM#") || c.toUpperCase().includes("TASK"))) {
                     headerFound = true;
                     finalCols.forEach((col, idx) => {
