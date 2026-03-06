@@ -21,18 +21,27 @@ const TaskModal: React.FC<TaskModalProps> = ({
     onDelete,
     onClose
 }) => {
-    const [formData, setFormData] = useState<Task>(() => task || {
-        id: `task-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        itemNumber: '',
-        title: '',
-        description: '',
-        type: 'AP',
-        start: 1,
-        duration: 1,
-        progress: 0,
-        project: activeProject !== 'ALL' ? activeProject : (projects[0] || 'DEFAULT'),
-        group: '',
-        dependencies: []
+    const [formData, setFormData] = useState<Task>(() => {
+        if (task) {
+            // Migrar tareas antiguas sin el campo group
+            return {
+                ...task,
+                group: task.group || ''
+            };
+        }
+        return {
+            id: `task-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            itemNumber: '',
+            title: '',
+            description: '',
+            type: 'AP',
+            start: 1,
+            duration: 1,
+            progress: 0,
+            project: activeProject !== 'ALL' ? activeProject : (projects[0] || 'DEFAULT'),
+            group: '',
+            dependencies: []
+        };
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
