@@ -170,7 +170,7 @@ const App: React.FC = () => {
       tasks = tasks.filter(t => t.start <= diffDays && (t.start + t.duration) >= diffDays);
     }
 
-    return tasks;
+    return tasks.sort((a, b) => a.start - b.start);
   }, [state.tasks, state.activeProject, searchQuery, viewFilter, currentStartDate]);
 
   // ────────────────────────────────────────────────────────────

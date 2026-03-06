@@ -10,6 +10,7 @@ export interface Task {
     duration: number; // Duración en días (entero)
     progress: number;
     project: string;
+    group?: string; // Grupo para la vista "Mind Map"
     dependencies: string[]; // IDs de tareas de las que depende
 }
 

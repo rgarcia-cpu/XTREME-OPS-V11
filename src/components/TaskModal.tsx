@@ -31,6 +31,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
         duration: 1,
         progress: 0,
         project: activeProject !== 'ALL' ? activeProject : (projects[0] || 'DEFAULT'),
+        group: '',
         dependencies: []
     });
 
@@ -138,6 +139,17 @@ const TaskModal: React.FC<TaskModalProps> = ({
                         </div>
                     </div>
 
+                    <div>
+                        <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">GRUPO / ZONA (Opcional)</label>
+                        <input
+                            name="group"
+                            value={formData.group || ''}
+                            onChange={handleChange}
+                            placeholder="Ej. CABIN, EQUIPOS EMERGENCIA..."
+                            className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none transition-all placeholder:text-slate-700"
+                        />
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-3">
                         <div>
                             <label htmlFor="start-day" className="text-[10px] text-cyan-500 uppercase font-black mb-1 block">Día Ini</label>
@@ -183,8 +195,22 @@ const TaskModal: React.FC<TaskModalProps> = ({
                     </div>
 
                     <div>
-                        <label className="text-[10px] text-cyan-500 uppercase font-black mb-2 block border-t border-slate-800 pt-3">Dependencias Operativas (Cascada)</label>
-                        <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar pr-2">
+                        <label className="text-[10px] text-cyan-500 uppercase font-black mb-2 block border-t border-slate-800 pt-3 flex items-center justify-between">
+                            <span>Dependencias Operativas (Cascada)</span>
+                            <div className="flex items-center gap-2">
+                                <label htmlFor="waiting-parts" className="text-orange-400 hover:text-orange-300 cursor-pointer flex items-center gap-1 bg-orange-500/10 px-2 py-1 rounded border border-orange-500/30 transition-colors">
+                                    <input
+                                        id="waiting-parts"
+                                        type="checkbox"
+                                        checked={formData.dependencies.includes('WAITING_PARTS')}
+                                        onChange={() => handleToggleDependency('WAITING_PARTS')}
+                                        className="accent-orange-500 cursor-pointer"
+                                    />
+                                    Esperando Partes
+                                </label>
+                            </div>
+                        </label>
+                        <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar pr-2 mt-2">
                             {tasks.filter(t => t.id !== formData.id && t.project === formData.project).map(other => (
                                 <button
                                     key={other.id}

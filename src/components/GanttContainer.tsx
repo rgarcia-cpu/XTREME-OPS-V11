@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Info } from 'lucide-react';
+import { Info, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 import type { Task, Project } from '../types';
 
 interface GanttProps {
@@ -18,6 +18,16 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
     const [scrollTop, setScrollTop] = useState(0);
     const [containerHeight, setContainerHeight] = useState(0);
     const [hoveredTask, setHoveredTask] = useState<string | null>(null);
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+    const toggleGroup = (group: string) => {
+        setCollapsedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(group)) next.delete(group);
+            else next.add(group);
+            return next;
+        });
+    };
 
     const intervalDays = project.intervalDays || 80;
     const gridWidth = intervalDays * DAY_WIDTH;
@@ -54,17 +64,84 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
         setScrollTop(e.currentTarget.scrollTop);
     };
 
-    const visibleTasks = useMemo(() => {
-        const start = Math.max(0, Math.floor((scrollTop - 56) / ROW_HEIGHT) - BUFFER);
-        const end = Math.min(tasks.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER);
+    // Calculate grouped and sorted rows directly matching the user requirements
+    const renderableRows = useMemo(() => {
+        const groups = new Map<string, Task[]>();
+        const independents: Task[] = [];
 
-        return tasks.slice(start, end).map((task, index) => ({
-            task,
+        tasks.forEach(t => {
+            const g = (t.group || '').trim();
+            if (g) {
+                if (!groups.has(g)) groups.set(g, []);
+                groups.get(g)!.push(t);
+            } else {
+                independents.push(t);
+            }
+        });
+
+        type GroupRow = { isGroup: true, id: string, name: string, start: number, duration: number, progress: number, tasks: Task[] };
+        type TaskRow = { isGroup: false, start: number, task: Task };
+        type CombinedRow = GroupRow | TaskRow;
+        type RenderableRow =
+            | { type: 'GROUP_HEADER', data: GroupRow, isChild?: never }
+            | { type: 'TASK', data: Task, isChild: boolean };
+
+        const rows: RenderableRow[] = [];
+        const processedGroups: GroupRow[] = Array.from(groups.entries()).map(([gName, gTasks]) => {
+            gTasks.sort((a, b) => a.start - b.start);
+            const minStart = Math.min(...gTasks.map(t => t.start));
+            const maxEnd = Math.max(...gTasks.map(t => t.start + t.duration));
+            const totalProgress = gTasks.reduce((acc, t) => acc + t.progress, 0) / gTasks.length;
+
+            return {
+                isGroup: true,
+                id: `group-${gName}`,
+                name: gName,
+                start: minStart,
+                duration: maxEnd - minStart,
+                progress: totalProgress,
+                tasks: gTasks
+            };
+        });
+
+        // 3. Combine groups and independents, sort chronologically
+        const combined: CombinedRow[] = [
+            ...processedGroups,
+            ...independents.map(t => ({ isGroup: false as const, start: t.start, task: t }))
+        ];
+
+        combined.sort((a, b) => a.start - b.start);
+
+        // 4. Flatten based on collapse state
+        combined.forEach(item => {
+            if (item.isGroup) {
+                const groupItem = item as GroupRow;
+                rows.push({ type: 'GROUP_HEADER', data: groupItem });
+                if (!collapsedGroups.has(groupItem.name)) {
+                    groupItem.tasks.forEach((t: Task) => {
+                        rows.push({ type: 'TASK', data: t, isChild: true });
+                    });
+                }
+            } else {
+                const taskItem = item as TaskRow;
+                rows.push({ type: 'TASK', data: taskItem.task, isChild: false });
+            }
+        });
+
+        return rows;
+    }, [tasks, collapsedGroups]);
+
+    const visibleRows = useMemo(() => {
+        const start = Math.max(0, Math.floor((scrollTop - 56) / ROW_HEIGHT) - BUFFER);
+        const end = Math.min(renderableRows.length, Math.ceil((scrollTop + containerHeight) / ROW_HEIGHT) + BUFFER);
+
+        return renderableRows.slice(start, end).map((row, index) => ({
+            row,
             displayIndex: start + index
         }));
-    }, [tasks, scrollTop, containerHeight]);
+    }, [renderableRows, scrollTop, containerHeight]);
 
-    const totalHeight = tasks.length * ROW_HEIGHT + 56;
+    const totalHeight = renderableRows.length * ROW_HEIGHT + 56;
 
     return (
         <div
@@ -112,42 +189,98 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
 
                 {/* Task Grid Area */}
                 <div className="relative">
-                    {visibleTasks.map((vTask) => {
-                        const { task, displayIndex } = vTask;
-                        // Calcular posición exacta (Día 1 = 0px, Día 2 = 60px...)
+                    {visibleRows.map((vRow) => {
+                        const { row, displayIndex } = vRow;
+                        const topPos = displayIndex * ROW_HEIGHT;
+
+                        if (row.type === 'GROUP_HEADER') {
+                            const group = row.data;
+                            const startPos = (group.start - 1) * DAY_WIDTH;
+                            const widthPos = group.duration * DAY_WIDTH;
+                            const isCollapsed = collapsedGroups.has(group.name);
+
+                            return (
+                                <div
+                                    key={group.id}
+                                    className="absolute left-0 w-full h-[48px] border-b border-white/5 z-20 group transition-all"
+                                    style={{ top: `${topPos}px` }}
+                                >
+                                    <div
+                                        className="absolute top-2 h-8 rounded border flex items-center px-2 cursor-pointer transition-all hover:brightness-110 z-20"
+                                        style={{
+                                            left: startPos,
+                                            width: Math.max(10, widthPos),
+                                            backgroundColor: '#1e293b', // slate-800
+                                            borderColor: 'rgba(255,255,255,0.1)',
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleGroup(group.name);
+                                        }}
+                                    >
+                                        <div
+                                            className="absolute left-0 top-0 bottom-0 bg-cyan-600/30 z-0 pointer-events-none transition-all duration-500 rounded-l"
+                                            style={{ width: `${group.progress}%` }}
+                                        />
+                                        <div className="z-10 flex items-center gap-1.5 w-full">
+                                            {isCollapsed ? <ChevronRight className="w-3 h-3 text-cyan-400" /> : <ChevronDown className="w-3 h-3 text-cyan-400" />}
+                                            <span className="truncate text-white font-black text-[10px] tracking-widest drop-shadow-md">
+                                                ★ {group.name}
+                                            </span>
+                                            <span className="ml-auto text-[9px] font-bold text-cyan-400">{Math.round(group.progress)}%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // Normal Task Rendering
+                        const task = row.data as Task;
                         const startPos = (task.start - 1) * DAY_WIDTH;
                         const widthPos = task.duration * DAY_WIDTH;
+                        const isWaitingParts = task.dependencies.includes('WAITING_PARTS');
 
                         return (
                             <div
                                 key={task.id}
                                 className={`absolute left-0 w-full h-[48px] border-b border-white/5 group transition-all hover:bg-white/[0.02] ${hoveredTask === task.id ? 'z-50' : 'z-0'}`}
-                                style={{ top: `${displayIndex * ROW_HEIGHT}px` }}
+                                style={{ top: `${topPos}px` }}
                                 onMouseEnter={() => setHoveredTask(task.id)}
                                 onMouseLeave={() => setHoveredTask(null)}
                             >
                                 <div
-                                    className={`absolute top-2 h-8 rounded border flex items-center px-3 font-black text-[10px] cursor-pointer transition-all hover:scale-[1.01] active:scale-95 z-10`}
+                                    className={`absolute top-2 h-8 rounded border flex items-center px-2 font-black text-[10px] cursor-pointer transition-all hover:scale-[1.01] active:scale-95 z-10 overflow-hidden ${row.isChild ? 'opacity-90' : ''}`}
                                     style={{
                                         left: startPos,
                                         width: Math.max(10, widthPos),
                                         backgroundColor: getTaskColor(task.type, task.progress),
-                                        borderColor: task.progress === 100 ? '#4ade80' : 'rgba(255,255,255,0.2)',
-                                        boxShadow: task.progress === 100 ? '0 0 15px rgba(74, 222, 128, 0.2)' : '0 0 10px rgba(0,0,0,0.3)'
+                                        borderColor: task.progress === 100 ? '#4ade80' : isWaitingParts ? '#f97316' : 'rgba(255,255,255,0.2)',
+                                        boxShadow: task.progress === 100 ? '0 0 15px rgba(74, 222, 128, 0.2)' : isWaitingParts ? '0 0 10px rgba(249, 115, 22, 0.4)' : '0 0 10px rgba(0,0,0,0.3)',
+                                        backgroundSize: isWaitingParts ? '20px 20px' : 'none',
+                                        backgroundImage: isWaitingParts ? 'repeating-linear-gradient(45deg, rgba(0,0,0,0.2) 0, rgba(0,0,0,0.2) 10px, transparent 10px, transparent 20px)' : 'none'
                                     }}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onEditTask(task);
                                     }}
                                 >
+                                    {/* Progress Bar with solid green color #15803d instead of white/10 */}
                                     <div
-                                        className="absolute left-0 top-0 bottom-0 bg-white/10 z-0 pointer-events-none transition-all duration-500"
-                                        style={{ width: `${task.progress}%` }}
+                                        className="absolute left-0 top-0 bottom-0 z-0 pointer-events-none transition-all duration-500"
+                                        style={{ width: `${task.progress}%`, backgroundColor: 'rgba(21, 128, 61, 0.75)' }} // Stronger visible progress
                                     />
 
-                                    <span className="z-10 truncate text-white drop-shadow-md">
-                                        {task.progress === 100 && '✓ '} {task.title}
-                                    </span>
+                                    <div className="z-10 flex items-center gap-1.5 w-full relative">
+                                        {row.isChild && <div className="w-1 h-1 rounded-full bg-white/50 flex-none" />}
+                                        {isWaitingParts && (
+                                            <span title="Esperando Partes" className="flex-none">
+                                                <AlertTriangle className="w-3 h-3 text-orange-400 animate-pulse" />
+                                            </span>
+                                        )}
+                                        <span className="truncate text-white drop-shadow-md">
+                                            {task.progress === 100 && '✓ '} {task.title}
+                                        </span>
+                                    </div>
 
                                     {/* Tooltip táctico */}
                                     {hoveredTask === task.id && task.description && (
@@ -156,11 +289,11 @@ const GanttContainer: React.FC<GanttProps> = ({ tasks, project, projectStartDate
                                                 <Info className="w-3 h-3 text-cyan-400" />
                                                 <span className="text-[9px] font-black text-cyan-500 uppercase tracking-widest">Detalle Operativo</span>
                                             </div>
-                                            <p className="text-[10px] text-slate-300 font-bold leading-relaxed">
+                                            <p className="text-[10px] text-slate-300 font-bold leading-relaxed whitespace-pre-wrap">
                                                 {task.description}
                                             </p>
                                             <div className="mt-2 pt-2 border-t border-white/5 flex justify-between items-center text-[8px] text-slate-500 uppercase font-black">
-                                                <span>{task.type} DEP</span>
+                                                <span>{task.type} DEP {row.isChild ? `| ZONA: ${task.group}` : ''}</span>
                                                 <span className="text-cyan-500">{task.progress}% COMPLETO</span>
                                             </div>
                                         </div>

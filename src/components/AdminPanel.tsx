@@ -63,19 +63,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                 }
                 finalCols.push(cur.trim().replace(/^"|"$/g, ''));
 
-                // Buscar encabezado
-                if (!headerFound && finalCols[0]?.toUpperCase().includes("ITEM#")) {
+                // Buscar encabezados (Item, Title, Desc, Start, Duration, Grupo)
+                let headerIdxItem = 0, headerIdxDesc = 1, headerIdxStart = 3, headerIdxDur = 4, headerIdxGroup = -1;
+
+                if (!headerFound && finalCols.some(c => c.toUpperCase().includes("ITEM#") || c.toUpperCase().includes("TASK"))) {
                     headerFound = true;
+                    finalCols.forEach((col, idx) => {
+                        const upCol = col.toUpperCase();
+                        if (upCol.includes("ITEM#") || upCol.includes("TASK")) headerIdxItem = idx;
+                        if (upCol.includes("DESCRIP") || upCol.includes("DISCREP")) headerIdxDesc = idx;
+                        if (upCol.includes("START") || upCol.includes("DIA")) headerIdxStart = idx;
+                        if (upCol.includes("DUR") || upCol.includes("DIAS")) headerIdxDur = idx;
+                        if (upCol.includes("GROUP") || upCol.includes("GRUPO") || upCol.includes("ZONA")) headerIdxGroup = idx;
+                    });
+                    // Store headers index globally for this file if we wanted, but we do simple assumption:
+                    // If we found them, great. If not, fallback to default indexes based on the if condition below
                     return;
                 }
 
                 // Si ya pasamos el encabezado y hay datos
-                if (headerFound && finalCols.length >= 5) {
-                    const itemNum = finalCols[0] || `T-${index}`;
-                    const title = finalCols[1]?.substring(0, 100).toUpperCase() || "SIN TITULO";
-                    const desc = finalCols[2] || finalCols[1];
-                    const startDay = Math.max(1, parseInt(finalCols[3]) || 1);
-                    const durationDays = Math.max(1, parseInt(finalCols[4]) || 1);
+                if (headerFound && finalCols.length >= 3) {
+                    const itemNum = finalCols[headerIdxItem] || `T-${index}`;
+                    const title = finalCols[headerIdxDesc]?.substring(0, 100).toUpperCase() || "SIN TITULO";
+                    const desc = finalCols[headerIdxDesc] || finalCols[1];
+                    const startDay = Math.max(1, parseInt(finalCols[headerIdxStart] || finalCols[3]) || 1);
+                    const durationDays = Math.max(1, parseInt(finalCols[headerIdxDur] || finalCols[4]) || 1);
+                    const groupName = headerIdxGroup !== -1 ? (finalCols[headerIdxGroup] || '').trim().toUpperCase() : '';
 
                     tasks.push({
                         // ID DEBE SER ÚNICO: proyecto + item + número de línea para evitar duplicados en Gantt
@@ -88,6 +101,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                         duration: durationDays,
                         progress: 0,
                         project: activeProject,
+                        group: groupName,
                         dependencies: []
                     });
                 }

@@ -43,6 +43,7 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
             duration: t.duration,
             progress: t.progress,
             project: t.project,
+            group: t.project_group || t.group || '', // Compatibility with 'group' or 'project_group'
             dependencies: t.dependencies ?? [],
         }));
 
@@ -95,6 +96,7 @@ export const saveTaskToCloud = async (task: Task) => {
         duration: task.duration,
         progress: task.progress,
         project: task.project,
+        project_group: task.group || '',
         dependencies: task.dependencies,
     });
     if (error) console.error('[CLOUD] Error guardando tarea:', error);
@@ -117,6 +119,7 @@ export const saveAllTasksToCloud = async (tasks: Task[]) => {
         duration: task.duration,
         progress: task.progress,
         project: task.project,
+        project_group: task.group || '',
         dependencies: task.dependencies,
     }));
     const { error } = await supabase.from('tasks').upsert(rows);
