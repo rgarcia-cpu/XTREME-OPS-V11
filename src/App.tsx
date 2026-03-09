@@ -60,21 +60,25 @@ const App: React.FC = () => {
       const localHasData = Object.keys(local.projects).length > 0;
 
       if (cloudHasData) {
-        // La nube es la fuente de verdad si tiene datos
-        setState(cloudState!);
-        saveState(cloudState!); // Sync local backup
+        // Cloud is source of truth — but preserve the activeProject from local so user stays in the same view
+        const preservedActiveProject =
+          local.activeProject && cloudState!.projects[local.activeProject]
+            ? local.activeProject
+            : Object.keys(cloudState!.projects)[0] || 'ALL';
+
+        const merged = { ...cloudState!, activeProject: preservedActiveProject };
+        setState(merged);
+        saveState(merged); // Sync local backup
         setSyncStatus('online');
       } else if (localHasData) {
-        // Si la nube está vacía pero tenemos datos locales, usamos los locales y subimos
+        // Cloud is empty — push local data up
         setState(local);
         setSyncStatus('online');
-        // Subida en background para no bloquear
         for (const proj of Object.values(local.projects)) {
           await saveProjectToCloud(proj);
         }
         await saveAllTasksToCloud(local.tasks);
       } else {
-        // Totalmente vacío
         setState(local);
         setSyncStatus('offline');
       }

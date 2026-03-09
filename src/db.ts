@@ -1,6 +1,22 @@
 import { supabase } from './supabase';
 import type { Task, Project, AppState } from './types';
 
+// Internal DB row shape for tasks (some columns optional for schema compatibility)
+interface TaskRow {
+    id: string;
+    item_number: string;
+    title: string;
+    description: string;
+    type: string;
+    start: number;
+    duration: number;
+    progress: number;
+    project: string;
+    dependencies: string[];
+    project_group?: string;
+    group?: string;
+}
+
 // ─────────────────────────────────────────────
 // LOAD
 // ─────────────────────────────────────────────
@@ -33,19 +49,27 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
             };
         });
 
-        const tasks: Task[] = (tasksData || []).map((t) => ({
-            id: t.id,
-            itemNumber: t.item_number || t.id.split('-').pop() || '',
-            title: t.title,
-            description: t.description ?? '',
-            type: t.type,
-            start: t.start,
-            duration: t.duration,
-            progress: t.progress,
-            project: t.project,
-            group: t.project_group || t.group || '', // Compatibility with 'group' or 'project_group'
-            dependencies: t.dependencies ?? [],
-        }));
+        const tasks: Task[] = (tasksData || []).map((t) => {
+            // Sanitize corrupted / out-of-bounds values that would hide tasks off-screen
+            const rawStart = typeof t.start === 'number' ? t.start : parseInt(t.start) || 1;
+            const rawDuration = typeof t.duration === 'number' ? t.duration : parseInt(t.duration) || 1;
+            const safeStart = rawStart > 500 || rawStart < 1 ? 1 : rawStart;   // Cap runaway dates
+            const safeDuration = rawDuration < 1 ? 1 : rawDuration;
+
+            return {
+                id: String(t.id),
+                itemNumber: t.item_number || String(t.id) || '',
+                title: t.title || '(Sin título)',
+                description: t.description ?? '',
+                type: t.type || 'INT',
+                start: safeStart,
+                duration: safeDuration,
+                progress: typeof t.progress === 'number' ? t.progress : 0,
+                project: t.project,
+                group: t.project_group || t.group || '',
+                dependencies: Array.isArray(t.dependencies) ? t.dependencies : [],
+            };
+        });
 
         const activeProject = Object.keys(projects)[0] || 'ALL';
 
@@ -86,7 +110,7 @@ export const deleteProjectFromCloud = async (name: string) => {
 // ─────────────────────────────────────────────
 
 export const saveTaskToCloud = async (task: Task) => {
-    const payload: any = {
+    const payload: TaskRow = {
         id: task.id,
         item_number: task.itemNumber,
         title: task.title,
@@ -128,7 +152,7 @@ export const deleteTaskFromCloud = async (id: string) => {
 
 export const saveAllTasksToCloud = async (tasks: Task[]) => {
     if (tasks.length === 0) return;
-    let rows: any[] = tasks.map(task => ({
+    let rows: TaskRow[] = tasks.map(task => ({
         id: task.id,
         item_number: task.itemNumber,
         title: task.title,

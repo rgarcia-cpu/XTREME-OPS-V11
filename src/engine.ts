@@ -23,8 +23,12 @@ export const recalculateTaskDates = (tasks: Task[]): Task[] => {
         for (let i = 0; i < updatedTasks.length; i++) {
             const task = updatedTasks[i];
 
-            // Forzar inicio mínimo en Día 1
+            // Forzar inicio mínimo en Día 1, máximo en 500 (para atrapar datos corruptos)
             if (task.start < 1) {
+                task.start = 1;
+                changed = true;
+            }
+            if (task.start > 500) {
                 task.start = 1;
                 changed = true;
             }
@@ -40,9 +44,10 @@ export const recalculateTaskDates = (tasks: Task[]): Task[] => {
                 }
             });
 
-            if (task.start < maxDependencyEnd) {
-                // Mover al día inmediatamente posterior al fin de la dependencia
-                task.start = maxDependencyEnd;
+            // Cap so cascading never pushes beyond max days
+            const newStart = Math.min(maxDependencyEnd, 500);
+            if (task.start < newStart) {
+                task.start = newStart;
                 changed = true;
             }
         }
