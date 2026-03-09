@@ -47,6 +47,7 @@ const App: React.FC = () => {
 
   // Track if initial cloud load has finished — avoid redundant saves on first render
   const cloudReady = useRef(false);
+  const isMutating = useRef(false); // Lock for preventing race conditions during save
 
   // ────────────────────────────────────────────────────────────
   // INITIAL CLOUD LOAD (with localStorage fallback)
@@ -60,13 +61,23 @@ const App: React.FC = () => {
       const localHasData = Object.keys(local.projects).length > 0;
 
       if (cloudHasData) {
-        // Cloud is source of truth — but preserve the activeProject from local so user stays in the same view
+        // Cloud is source of truth — but preserve the activeProject from local
         const preservedActiveProject =
           local.activeProject && cloudState!.projects[local.activeProject]
             ? local.activeProject
             : Object.keys(cloudState!.projects)[0] || 'ALL';
 
-        const merged = { ...cloudState!, activeProject: preservedActiveProject };
+        // COMPATIBILITY: If cloud has projects but 0 tasks for the active project, 
+        // and local has tasks for that same project, keep the local tasks as a safety buffer
+        const finalTasks = (cloudState!.tasks.length === 0 && local.tasks.length > 0)
+          ? local.tasks
+          : cloudState!.tasks;
+
+        const merged = {
+          ...cloudState!,
+          tasks: finalTasks,
+          activeProject: preservedActiveProject
+        };
         setState(merged);
         saveState(merged); // Sync local backup
         setSyncStatus('online');
@@ -94,11 +105,12 @@ const App: React.FC = () => {
     const channel = supabase
       .channel('strategic-ops-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async () => {
+        if (isMutating.current) return; // Prevent overwriting while we are saving
         const cloudState = await loadStateFromCloud();
         if (cloudState) {
           setState(prev => ({
-            ...cloudState,
-            activeProject: prev.activeProject, // keep current view
+            ...prev,
+            tasks: cloudState.tasks, // only sync tasks, keep projects local unless project event
           }));
         }
       })
@@ -423,36 +435,40 @@ const App: React.FC = () => {
             activeProject={state.activeProject}
             onAddProject={handleAddProject}
             onAddTasks={async (newTasks) => {
-              let mergedTasksToSave: Task[] = [];
-              setState(prev => {
-                const existingMap = new Map(prev.tasks.map(t => [t.id, t]));
-                mergedTasksToSave = newTasks.map(nt => {
-                  const ex = existingMap.get(nt.id);
-                  if (ex) {
-                    // Update only text properties from CSV, preserve meaningful user edits
-                    return {
-                      ...ex,
-                      title: nt.title,
-                      description: nt.description,
-                      group: ex.group || nt.group, // Keep manually added group if it exists
-                    };
-                  }
-                  return nt;
-                });
+              // 1. Compute merge synchronously to avoid race condition with React setState
+              const existingTasks = state.tasks;
+              const existingMap = new Map(existingTasks.map(t => [t.id, t]));
 
-                mergedTasksToSave.forEach(t => existingMap.set(t.id, t));
-                const finalTasks = Array.from(existingMap.values());
-
-                return {
-                  ...prev,
-                  tasks: recalculateTaskDates(finalTasks)
-                };
+              const mergedTasksToSave = newTasks.map(nt => {
+                const ex = existingMap.get(nt.id);
+                if (ex) {
+                  return {
+                    ...ex,
+                    title: nt.title,
+                    description: nt.description,
+                    group: ex.group || nt.group,
+                  };
+                }
+                return nt;
               });
 
-              // We must save to Supabase AFTER we've computed the merged tasks
-              // to avoid overwriting existing data with blank CSV data.
+              // 2. Prepare final task list for the UI
+              mergedTasksToSave.forEach(t => existingMap.set(t.id, t));
+              const finalTasks = Array.from(existingMap.values());
+              const updatedTasks = recalculateTaskDates(finalTasks);
+
+              // 3. Update local state
+              setState(prev => ({
+                ...prev,
+                tasks: updatedTasks
+              }));
+
+              // 4. Save to cloud using the computed data
               if (mergedTasksToSave.length > 0) {
+                isMutating.current = true;
                 await saveAllTasksToCloud(mergedTasksToSave);
+                // Hold the lock briefly to let Supabase process events
+                setTimeout(() => { isMutating.current = false; }, 2000);
               }
             }}
             onDeleteProject={handleDeleteProject}

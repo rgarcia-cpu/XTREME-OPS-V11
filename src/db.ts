@@ -9,7 +9,9 @@ interface TaskRow {
     description: string;
     type: string;
     start: number;
+    start_hour: number;
     duration: number;
+    duration_hours: number;
     progress: number;
     project: string;
     dependencies: string[];
@@ -117,7 +119,9 @@ export const saveTaskToCloud = async (task: Task) => {
         description: task.description,
         type: task.type,
         start: task.start,
+        start_hour: 8,
         duration: task.duration,
+        duration_hours: 0,
         progress: task.progress,
         project: task.project,
         project_group: task.group || '',
@@ -159,7 +163,9 @@ export const saveAllTasksToCloud = async (tasks: Task[]) => {
         description: task.description,
         type: task.type,
         start: task.start,
+        start_hour: 8,
         duration: task.duration,
+        duration_hours: 0,
         progress: task.progress,
         project: task.project,
         project_group: task.group || '',
