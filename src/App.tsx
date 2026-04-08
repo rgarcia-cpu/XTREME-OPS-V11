@@ -433,6 +433,7 @@ const App: React.FC = () => {
           <AdminPanel
             projects={state.projects}
             activeProject={state.activeProject}
+            tasks={state.tasks}
             onAddProject={handleAddProject}
             onAddTasks={async (newTasks) => {
               // 1. Compute merge synchronously to avoid race condition with React setState

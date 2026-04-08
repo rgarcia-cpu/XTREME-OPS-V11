@@ -5,13 +5,14 @@ import type { Project, Task } from '../types';
 interface AdminPanelProps {
     projects: Record<string, Project>;
     activeProject: string; // Nueva prop
+    tasks: Task[]; // Para calcular contadores por proyecto
     onAddProject: (project: Project) => void;
     onAddTasks: (tasks: Task[]) => void;
     onDeleteProject: (name: string) => void;
     onClose: () => void;
 }
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddProject, onAddTasks, onDeleteProject, onClose }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks, onAddProject, onAddTasks, onDeleteProject, onClose }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Project>({
         name: '',
@@ -419,6 +420,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, onAddP
                                     <div className="text-slate-500">INTERVALO:</div>
                                     <div className="text-cyan-500 text-right">{proj.intervalDays} DÍAS</div>
                                 </div>
+                                {/* ── TASK COUNTERS ── */}
+                                {(() => {
+                                    const projTasks = tasks.filter(t => t.project === proj.name);
+                                    const total = projTasks.length;
+                                    const logradas = projTasks.filter(t => t.progress === 100).length;
+                                    const pendientes = total - logradas;
+                                    if (total === 0) return null;
+                                    return (
+                                        <div className="mt-2 pt-2 border-t border-white/5 grid grid-cols-3 gap-1 text-center">
+                                            <div className="flex flex-col items-center px-1 py-1 rounded bg-slate-800/60">
+                                                <span className="text-[11px] font-black text-white leading-none">{total}</span>
+                                                <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">TOTALES</span>
+                                            </div>
+                                            <div className="flex flex-col items-center px-1 py-1 rounded bg-emerald-900/30 border border-emerald-500/20">
+                                                <span className="text-[11px] font-black text-emerald-400 leading-none">{logradas}</span>
+                                                <span className="text-[7px] font-bold text-emerald-600 uppercase tracking-wider mt-0.5">LOGRADAS</span>
+                                            </div>
+                                            <div className="flex flex-col items-center px-1 py-1 rounded bg-amber-900/20 border border-amber-500/20">
+                                                <span className="text-[11px] font-black text-amber-400 leading-none">{pendientes}</span>
+                                                <span className="text-[7px] font-bold text-amber-600 uppercase tracking-wider mt-0.5">PENDIENTES</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         ))}
                     </div>
