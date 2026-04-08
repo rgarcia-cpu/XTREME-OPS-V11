@@ -15,9 +15,11 @@ interface TaskRow {
     progress: number;
     project: string;
     dependencies: string[];
-    project_group?: string;
-    group?: string;
+    task_group?: string; // Use task_group as the canonical column name
 }
+
+// LocalStorage key for emergency group backup
+const LOCAL_STORAGE_GROUP_KEY = 'task_groups_backup';
 
 // ─────────────────────────────────────────────
 // LOAD
@@ -51,6 +53,17 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
             };
         });
 
+        // Load emergency group backup from localStorage
+        let localStorageGroups: Record<string, string> = {};
+        try {
+            const storedGroups = localStorage.getItem(LOCAL_STORAGE_GROUP_KEY);
+            if (storedGroups) {
+                localStorageGroups = JSON.parse(storedGroups);
+            }
+        } catch (e) {
+            console.warn('[CLOUD] Error parsing localStorage group backup:', e);
+        }
+
         const tasks: Task[] = (tasksData || []).map((t) => {
             // Sanitize corrupted / out-of-bounds values that would hide tasks off-screen
             const rawStart = typeof t.start === 'number' ? t.start : parseInt(t.start) || 1;
@@ -58,8 +71,16 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
             const safeStart = rawStart > 500 || rawStart < 1 ? 1 : rawStart;   // Cap runaway dates
             const safeDuration = rawDuration < 1 ? 1 : rawDuration;
 
+            const taskId = String(t.id);
+            let group = t.task_group || '';
+
+            // If cloud data doesn't have group, try to merge from localStorage backup
+            if (!group && localStorageGroups[taskId]) {
+                group = localStorageGroups[taskId];
+            }
+
             return {
-                id: String(t.id),
+                id: taskId,
                 itemNumber: t.item_number || String(t.id) || '',
                 title: t.title || '(Sin título)',
                 description: t.description ?? '',
@@ -68,10 +89,15 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
                 duration: safeDuration,
                 progress: typeof t.progress === 'number' ? t.progress : 0,
                 project: t.project,
-                group: t.project_group || t.group || '',
+                group: group,
                 dependencies: Array.isArray(t.dependencies) ? t.dependencies : [],
             };
         });
+
+        // Clear localStorage backup after successful merge to prevent stale data
+        if (Object.keys(localStorageGroups).length > 0) {
+            localStorage.removeItem(LOCAL_STORAGE_GROUP_KEY);
+        }
 
         const activeProject = Object.keys(projects)[0] || 'ALL';
 
@@ -124,39 +150,72 @@ export const saveTaskToCloud = async (task: Task) => {
         duration_hours: 0,
         progress: task.progress,
         project: task.project,
-        project_group: task.group || '',
+        task_group: task.group || '', // Use task_group
         dependencies: task.dependencies,
     };
 
-    let { error } = await supabase.from('tasks').upsert(payload);
-
-    if (error && (error.message.includes('project_group') || error.message.includes('column'))) {
-        delete payload.project_group;
-        payload.group = task.group || '';
-        const retryResult = await supabase.from('tasks').upsert(payload);
-        error = retryResult.error;
-
-        if (error && (error.message.includes('group') || error.message.includes('column'))) {
-            delete payload.group;
-            const finalResult = await supabase.from('tasks').upsert(payload);
-            error = finalResult.error;
-        }
-    }
+    const { error } = await supabase.from('tasks').upsert(payload);
 
     if (error) {
         console.error('[CLOUD] Error guardando tarea:', error);
-        alert(`[ ERROR NUBE ] No se guardó la tarea. \nSugerencia: Revisa que todos los campos sean válidos. Detalle del servidor: ${error.message}`);
+        // If the error indicates a missing 'task_group' column, save to localStorage as emergency backup
+        if (error.message.includes('column "task_group" does not exist')) {
+            console.warn('[CLOUD] "task_group" column not found. Saving group to localStorage as backup.');
+            try {
+                const storedGroups = localStorage.getItem(LOCAL_STORAGE_GROUP_KEY);
+                const groups = storedGroups ? JSON.parse(storedGroups) : {};
+                groups[task.id] = task.group || '';
+                localStorage.setItem(LOCAL_STORAGE_GROUP_KEY, JSON.stringify(groups));
+                alert(`[ ERROR NUBE ] No se guardó la tarea en la nube (columna 'task_group' no existe). El grupo se guardó localmente. \nSugerencia: Revisa que todos los campos sean válidos. Detalle del servidor: ${error.message}`);
+            } catch (e) {
+                console.error('[CLOUD] Error saving group to localStorage:', e);
+                alert(`[ ERROR NUBE ] No se guardó la tarea. \nSugerencia: Revisa que todos los campos sean válidos. Detalle del servidor: ${error.message}`);
+            }
+        } else {
+            alert(`[ ERROR NUBE ] No se guardó la tarea. \nSugerencia: Revisa que todos los campos sean válidos. Detalle del servidor: ${error.message}`);
+        }
     }
 };
 
 export const deleteTaskFromCloud = async (id: string) => {
+    // Also remove from local group backup
+    try {
+        const storedGroups = localStorage.getItem(LOCAL_STORAGE_GROUP_KEY);
+        if (storedGroups) {
+            const groups = JSON.parse(storedGroups);
+            delete groups[id];
+            localStorage.setItem(LOCAL_STORAGE_GROUP_KEY, JSON.stringify(groups));
+        }
+    } catch { /* ignore */ }
+
     const { error } = await supabase.from('tasks').delete().eq('id', id);
     if (error) console.error('[CLOUD] Error eliminando tarea:', error);
 };
 
 export const saveAllTasksToCloud = async (tasks: Task[]) => {
     if (tasks.length === 0) return;
-    let rows: TaskRow[] = tasks.map(task => ({
+
+    // ── STEP 1: Always persist groups to localStorage first (the safety net) ──
+    // This ensures groups survive even if Supabase column doesn't exist yet.
+    const groupBackup: Record<string, string> = {};
+    tasks.forEach(t => {
+        if (t.group && t.group.trim()) {
+            groupBackup[t.id] = t.group.trim();
+        }
+    });
+    if (Object.keys(groupBackup).length > 0) {
+        // Merge with any existing backup instead of overwriting
+        try {
+            const existing = localStorage.getItem(LOCAL_STORAGE_GROUP_KEY);
+            const merged = existing ? { ...JSON.parse(existing), ...groupBackup } : groupBackup;
+            localStorage.setItem(LOCAL_STORAGE_GROUP_KEY, JSON.stringify(merged));
+        } catch {
+            localStorage.setItem(LOCAL_STORAGE_GROUP_KEY, JSON.stringify(groupBackup));
+        }
+    }
+
+    // ── STEP 2: Try saving to Supabase with task_group column ──
+    const rowsWithGroup: TaskRow[] = tasks.map(task => ({
         id: task.id,
         item_number: task.itemNumber,
         title: task.title,
@@ -168,34 +227,36 @@ export const saveAllTasksToCloud = async (tasks: Task[]) => {
         duration_hours: 0,
         progress: task.progress,
         project: task.project,
-        project_group: task.group || '',
+        task_group: task.group || '',
         dependencies: task.dependencies,
     }));
 
-    let { error } = await supabase.from('tasks').upsert(rows);
+    let { error } = await supabase.from('tasks').upsert(rowsWithGroup);
 
-    if (error && (error.message.includes('project_group') || error.message.includes('column'))) {
-        rows = rows.map(r => {
-            const nr = { ...r, group: r.project_group };
-            delete nr.project_group;
-            return nr;
-        });
-        const retryResult = await supabase.from('tasks').upsert(rows);
+    // ── STEP 3: If task_group column missing, fall back to saving without it ──
+    // Groups are still safe in localStorage from Step 1.
+    if (error && (error.code === 'PGRST204' || error.message.includes('task_group') || error.message.includes('column'))) {
+        console.warn('[CLOUD] "task_group" column not found in Supabase — groups are saved in localStorage. To enable cloud group persistence, run this SQL in the Supabase dashboard: ALTER TABLE tasks ADD COLUMN IF NOT EXISTS task_group TEXT DEFAULT \'\';');
+        const rowsWithoutGroup: TaskRow[] = tasks.map(task => ({
+            id: task.id,
+            item_number: task.itemNumber,
+            title: task.title,
+            description: task.description,
+            type: task.type,
+            start: task.start,
+            start_hour: 8,
+            duration: task.duration,
+            duration_hours: 0,
+            progress: task.progress,
+            project: task.project,
+            dependencies: task.dependencies,
+        }));
+        const retryResult = await supabase.from('tasks').upsert(rowsWithoutGroup);
         error = retryResult.error;
-
-        if (error && (error.message.includes('group') || error.message.includes('column'))) {
-            rows = rows.map(r => {
-                const nr = { ...r };
-                delete nr.group;
-                return nr;
-            });
-            const finalResult = await supabase.from('tasks').upsert(rows);
-            error = finalResult.error;
-        }
     }
 
     if (error) {
         console.error('[CLOUD] Error en upsert masivo de tareas:', error);
-        alert(`[ ERROR MASIVO NUBE ] No se pudieron guardar las tareas actualizadas. \nDetalle: ${error.message}`);
+        alert(`[ ERROR MASIVO NUBE ] No se pudieron guardar las tareas. \nDetalle: ${error.message}`);
     }
 };
