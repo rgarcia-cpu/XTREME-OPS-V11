@@ -277,6 +277,7 @@ const App: React.FC = () => {
         activeProject={state.activeProject}
         setActiveProject={(p: string) => setState(prev => ({ ...prev, activeProject: p }))}
         projects={state.projects}
+        tasks={state.tasks}
         className="print:hidden"
       />
 
@@ -389,8 +390,8 @@ const App: React.FC = () => {
               <span className="text-[9px] font-black text-white uppercase">{filteredTasks.length} TKS_ARMED</span>
             </div>
           </div>
-          <div className="text-[8px] font-bold text-slate-600 animate-pulse hidden sm:block">
-            // RAW_DATA_STREAMS_ACTIVE // SECURE_UPLINK_ESTABLISHED
+          <div className="text-[8px] font-bold text-slate-500 hidden sm:block">
+            SISTEMA ACTIVO &nbsp;|&nbsp; SINCRONIZACIÓN EN LA NUBE
           </div>
         </div>
 
