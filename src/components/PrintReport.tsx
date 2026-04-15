@@ -123,8 +123,10 @@ const PrintReport: React.FC<PrintReportProps> = ({ tasks, projects, activeProjec
                                         <td className="border border-black p-2 font-black text-center">{task.progress}%</td>
                                         <td className="border border-black p-2">
                                             <div className="font-black text-[11px] uppercase">{task.title}</div>
-                                            {task.description && (
-                                                <div className="text-[9px] text-gray-700 leading-tight italic mt-0.5 line-clamp-2">{task.description}</div>
+                                            {(task.descriptionEs || task.description) && (
+                                                <div className="text-[9px] text-gray-500 leading-tight italic mt-0.5 line-clamp-2">
+                                                    {task.descriptionEs || task.description}
+                                                </div>
                                             )}
                                         </td>
                                         <td className="border border-black p-2 text-center align-middle">

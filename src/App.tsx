@@ -448,6 +448,7 @@ const App: React.FC = () => {
                     ...ex,
                     title: nt.title,
                     description: nt.description,
+                    descriptionEs: nt.descriptionEs || ex.descriptionEs,
                     group: ex.group || nt.group,
                   };
                 }

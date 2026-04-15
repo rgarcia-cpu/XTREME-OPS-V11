@@ -45,7 +45,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
 
             const tasks: Task[] = [];
             let headerFound = false;
-            let headerIdxItem = 0, headerIdxDesc = 1, headerIdxStart = 3, headerIdxDur = 4, headerIdxGroup = -1;
+            let headerIdxItem = 0, headerIdxDesc = 1, headerIdxStart = 3, headerIdxDur = 4, headerIdxGroup = -1, headerIdxDescEs = -1;
 
             lines.forEach((line, index) => {
                 const rawLine = line.trim();
@@ -75,6 +75,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
                         if (upCol.includes("START") || upCol.includes("DIA")) headerIdxStart = idx;
                         if (upCol.includes("DUR") || upCol.includes("DIAS")) headerIdxDur = idx;
                         if (upCol.includes("GROUP") || upCol.includes("GRUPO") || upCol.includes("ZONA")) headerIdxGroup = idx;
+                        if (upCol.includes("DESC_ES") || upCol.includes("DESCRIPCION_ES") || upCol.includes("DESCRIPCIÓN_ES")) headerIdxDescEs = idx;
                     });
                     // Store headers index globally for this file if we wanted, but we do simple assumption:
                     // If we found them, great. If not, fallback to default indexes based on the if condition below
@@ -90,12 +91,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
                     const durationDays = Math.max(1, parseInt(finalCols[headerIdxDur] || finalCols[4]) || 1);
                     const groupName = headerIdxGroup !== -1 ? (finalCols[headerIdxGroup] || '').trim().toUpperCase() : '';
 
+                    const descEs = headerIdxDescEs !== -1 ? (finalCols[headerIdxDescEs] || '').trim() : '';
+
                     tasks.push({
                         // ID DEBE SER ÚNICO: proyecto + item + número de línea para evitar duplicados en Gantt
                         id: `${activeProject}-${itemNum}-${index}`,
                         itemNumber: itemNum,
                         title: title,
                         description: desc,
+                        descriptionEs: descEs || undefined,
                         type: 'INT',
                         start: startDay,
                         duration: durationDays,

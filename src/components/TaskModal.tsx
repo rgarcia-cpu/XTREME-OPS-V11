@@ -26,7 +26,8 @@ const TaskModal: React.FC<TaskModalProps> = ({
             // Migrar tareas antiguas sin el campo group
             return {
                 ...task,
-                group: task.group || ''
+                group: task.group || '',
+                descriptionEs: task.descriptionEs || ''
             };
         }
         return {
@@ -34,6 +35,7 @@ const TaskModal: React.FC<TaskModalProps> = ({
             itemNumber: '',
             title: '',
             description: '',
+            descriptionEs: '',
             type: 'AP',
             start: 1,
             duration: 1,
@@ -104,18 +106,33 @@ const TaskModal: React.FC<TaskModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Descripción Larga (para Tooltip) */}
+                    {/* Descripción Larga EN (para Tooltip) */}
                     <div>
                         <label className="text-[10px] text-cyan-500 uppercase font-black mb-1 block flex items-center gap-2">
-                            DESCRIPCIÓN DE LA TAREA <Info className="w-2.5 h-2.5 opacity-50" />
+                            DESCRIPCIÓN (EN) <Info className="w-2.5 h-2.5 opacity-50" />
                         </label>
                         <textarea
                             name="description"
                             value={formData.description}
                             onChange={handleChange}
-                            rows={3}
-                            placeholder="DETALLES COMPLETOS DE LA TAREA PARA EL REPORTE..."
+                            rows={2}
+                            placeholder="FULL TASK DESCRIPTION FOR TOOLTIP..."
                             className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-white focus:border-cyan-500 outline-none transition-all placeholder:text-slate-700 resize-none"
+                        />
+                    </div>
+
+                    {/* Descripción en Español (para el reporte impreso) */}
+                    <div>
+                        <label className="text-[10px] text-amber-400 uppercase font-black mb-1 block flex items-center gap-2">
+                            DESCRIPCIÓN EN ESPAÑOL <span className="text-[8px] text-slate-500 font-normal normal-case">(aparece en gris en el reporte)</span>
+                        </label>
+                        <textarea
+                            name="descriptionEs"
+                            value={formData.descriptionEs || ''}
+                            onChange={handleChange}
+                            rows={2}
+                            placeholder="Descripción en español para el reporte impreso..."
+                            className="w-full bg-slate-900 border border-amber-700/40 rounded p-2 text-xs text-white focus:border-amber-500 outline-none transition-all placeholder:text-slate-700 resize-none"
                         />
                     </div>
 

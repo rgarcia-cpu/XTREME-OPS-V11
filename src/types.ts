@@ -4,7 +4,8 @@ export interface Task {
     id: string;
     itemNumber: string; // El número de item del CSV (ej. 25-105-00-01)
     title: string;
-    description: string; // Para el tooltip de descripción larga
+    description: string; // Para el tooltip de descripción larga (EN)
+    descriptionEs?: string; // Descripción en español (para el reporte impreso)
     type: TaskType;
     start: number; // Día relativo (entero, base 1)
     duration: number; // Duración en días (entero)

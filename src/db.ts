@@ -7,6 +7,7 @@ interface TaskRow {
     item_number: string;
     title: string;
     description: string;
+    description_es?: string; // Descripción en español (columna opcional)
     type: string;
     start: number;
     start_hour: number;
@@ -84,6 +85,7 @@ export const loadStateFromCloud = async (): Promise<AppState | null> => {
                 itemNumber: t.item_number || String(t.id) || '',
                 title: t.title || '(Sin título)',
                 description: t.description ?? '',
+                descriptionEs: t.description_es || undefined,
                 type: t.type || 'INT',
                 start: safeStart,
                 duration: safeDuration,
@@ -143,6 +145,7 @@ export const saveTaskToCloud = async (task: Task) => {
         item_number: task.itemNumber,
         title: task.title,
         description: task.description,
+        description_es: task.descriptionEs || undefined,
         type: task.type,
         start: task.start,
         start_hour: 8,
@@ -220,6 +223,7 @@ export const saveAllTasksToCloud = async (tasks: Task[]) => {
         item_number: task.itemNumber,
         title: task.title,
         description: task.description,
+        description_es: task.descriptionEs || undefined,
         type: task.type,
         start: task.start,
         start_hour: 8,
