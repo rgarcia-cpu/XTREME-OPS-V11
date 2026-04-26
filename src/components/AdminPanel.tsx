@@ -129,16 +129,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
                 ...prev,
                 [name]: name === 'intervalDays' ? parseInt(value) || 0 : value
             };
-            // Auto-suggest a unique internal ID from customer + ac when not editing
-            if (!isEditing && (name === 'customer' || name === 'ac')) {
-                const cust = (name === 'customer' ? value : prev.customer).trim().toUpperCase().replace(/\s+/g, '-').substring(0, 15);
-                const ac   = (name === 'ac'       ? value : prev.ac).trim().toUpperCase().replace(/\s+/g, '-').substring(0, 10);
-                if (cust || ac) {
-                    updated.name = [cust, ac].filter(Boolean).join('_');
-                }
+            // Auto-generate internal ID from WO — WO is the true unique project identifier
+            if (!isEditing && name === 'wo') {
+                updated.name = value.trim().toUpperCase().replace(/\s+/g, '-');
             }
             // Clear name error when user edits the name field manually
-            if (name === 'name') setNameError('');
+            if (name === 'name' || name === 'wo') setNameError('');
             return updated;
         });
     };
@@ -146,15 +142,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
     const handleAdd = () => {
         const finalName = formData.name.trim().toUpperCase();
 
-        if (!finalName || !formData.customer.trim()) {
-            setNameError('El IDENTIFICADOR INTERNO y el CUSTOMER son obligatorios.');
+        if (!finalName || !formData.customer.trim() || !formData.wo.trim()) {
+            setNameError('CUSTOMER, W/O e IDENTIFICADOR INTERNO son obligatorios.');
             return;
         }
 
         // ── GUARD: block silent overwrite of existing project ──
         if (!isEditing && projects[finalName]) {
+            const existing = projects[finalName];
             setNameError(
-                `⚠️ Ya existe un proyecto con el ID "${finalName}" (${projects[finalName].customer} / ${projects[finalName].ac}). Cambia el IDENTIFICADOR INTERNO para crear uno nuevo.`
+                `⚠️ El W/O "${finalName}" ya existe (${existing.customer} / A/C: ${existing.ac}). Cada W/O debe ser único.`
             );
             return;
         }
@@ -320,29 +317,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
                         </div>
 
                         <div>
-                            <label htmlFor="project-id" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">IDENTIFICADOR INTERNO (ÚNICO — NO REPETIR)</label>
+                            <label htmlFor="project-id" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">ID PROYECTO — SE USA EL W/O (AUTO)</label>
                             <input
                                 id="project-id"
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
                                 readOnly={isEditing}
-                                placeholder="Se auto-genera con CUSTOMER + A/C..."
-                                className={`w-full bg-slate-950 border rounded py-1.5 px-3 text-[10px] text-white focus:border-cyan-500 outline-none font-bold transition-all ${
+                                placeholder="Se auto-completa al escribir el W/O..."
+                                className={`w-full bg-slate-950 border rounded py-1.5 px-3 text-[10px] font-bold outline-none transition-all ${
                                     nameError
-                                        ? 'border-red-500 bg-red-950/30'
+                                        ? 'border-red-500 bg-red-950/30 text-red-300'
                                         : isEditing
-                                        ? 'border-slate-800 opacity-50'
+                                        ? 'border-slate-800 opacity-50 text-white'
                                         : projects[formData.name.trim().toUpperCase()] && !isEditing
-                                        ? 'border-amber-500 bg-amber-950/20'
-                                        : 'border-slate-800'
+                                        ? 'border-amber-500 bg-amber-950/20 text-amber-300'
+                                        : 'border-emerald-700 bg-emerald-950/20 text-emerald-300 focus:border-emerald-400'
                                 }`}
                             />
                             {nameError && (
                                 <p className="text-[8px] text-red-400 mt-1 font-bold leading-tight">{nameError}</p>
                             )}
                             {!nameError && !isEditing && formData.name && projects[formData.name.trim().toUpperCase()] && (
-                                <p className="text-[8px] text-amber-400 mt-1 font-bold">⚠️ Este ID ya existe. Modifícalo para no sobreescribir.</p>
+                                <p className="text-[8px] text-amber-400 mt-1 font-bold">⚠️ Este W/O ya existe. No se puede duplicar.</p>
+                            )}
+                            {!nameError && !isEditing && formData.name && !projects[formData.name.trim().toUpperCase()] && (
+                                <p className="text-[8px] text-emerald-500 mt-1 font-bold">✓ W/O disponible — ID único confirmado.</p>
                             )}
                         </div>
 
