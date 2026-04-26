@@ -14,6 +14,7 @@ interface AdminPanelProps {
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks, onAddProject, onAddTasks, onDeleteProject, onClose }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const [nameError, setNameError] = useState('');
     const [formData, setFormData] = useState<Project>({
         name: '',
         customer: '',
@@ -123,33 +124,60 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'intervalDays' ? parseInt(value) || 0 : value
-        }));
+        setFormData(prev => {
+            const updated = {
+                ...prev,
+                [name]: name === 'intervalDays' ? parseInt(value) || 0 : value
+            };
+            // Auto-suggest a unique internal ID from customer + ac when not editing
+            if (!isEditing && (name === 'customer' || name === 'ac')) {
+                const cust = (name === 'customer' ? value : prev.customer).trim().toUpperCase().replace(/\s+/g, '-').substring(0, 15);
+                const ac   = (name === 'ac'       ? value : prev.ac).trim().toUpperCase().replace(/\s+/g, '-').substring(0, 10);
+                if (cust || ac) {
+                    updated.name = [cust, ac].filter(Boolean).join('_');
+                }
+            }
+            // Clear name error when user edits the name field manually
+            if (name === 'name') setNameError('');
+            return updated;
+        });
     };
 
     const handleAdd = () => {
-        if (formData.name.trim() && formData.customer.trim()) {
-            onAddProject({
-                ...formData,
-                name: formData.name.trim().toUpperCase()
-            });
-            setIsEditing(false);
-            // Reset form
-            setFormData({
-                name: '',
-                customer: '',
-                ac: '',
-                model: '',
-                msn: '',
-                wo: '',
-                lp: '',
-                pm: '',
-                startDate: new Date().toISOString().split('T')[0],
-                intervalDays: 45
-            });
+        const finalName = formData.name.trim().toUpperCase();
+
+        if (!finalName || !formData.customer.trim()) {
+            setNameError('El IDENTIFICADOR INTERNO y el CUSTOMER son obligatorios.');
+            return;
         }
+
+        // ── GUARD: block silent overwrite of existing project ──
+        if (!isEditing && projects[finalName]) {
+            setNameError(
+                `⚠️ Ya existe un proyecto con el ID "${finalName}" (${projects[finalName].customer} / ${projects[finalName].ac}). Cambia el IDENTIFICADOR INTERNO para crear uno nuevo.`
+            );
+            return;
+        }
+
+        setNameError('');
+        onAddProject({
+            ...formData,
+            name: finalName
+        });
+        setIsEditing(false);
+        // Reset form
+        setFormData({
+            name: '',
+            customer: '',
+            ac: '',
+            model: '',
+            msn: '',
+            wo: '',
+            lp: '',
+            pm: '',
+            startDate: new Date().toISOString().split('T')[0],
+            intervalDays: 45
+        });
     };
 
     const handleEditClick = (proj: Project) => {
@@ -292,16 +320,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ projects, activeProject, tasks,
                         </div>
 
                         <div>
-                            <label htmlFor="project-id" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">IDENTIFICADOR INTERNO (UNICO)</label>
+                            <label htmlFor="project-id" className="text-[8px] text-slate-500 uppercase font-black mb-1 block">IDENTIFICADOR INTERNO (ÚNICO — NO REPETIR)</label>
                             <input
                                 id="project-id"
                                 name="name"
                                 value={formData.name}
                                 onChange={handleChange}
                                 readOnly={isEditing}
-                                placeholder="P-2025-FLIGHT-01..."
-                                className={`w-full bg-slate-950 border border-slate-800 rounded py-1.5 px-3 text-[10px] text-white focus:border-cyan-500 outline-none font-bold ${isEditing ? 'opacity-50' : ''}`}
+                                placeholder="Se auto-genera con CUSTOMER + A/C..."
+                                className={`w-full bg-slate-950 border rounded py-1.5 px-3 text-[10px] text-white focus:border-cyan-500 outline-none font-bold transition-all ${
+                                    nameError
+                                        ? 'border-red-500 bg-red-950/30'
+                                        : isEditing
+                                        ? 'border-slate-800 opacity-50'
+                                        : projects[formData.name.trim().toUpperCase()] && !isEditing
+                                        ? 'border-amber-500 bg-amber-950/20'
+                                        : 'border-slate-800'
+                                }`}
                             />
+                            {nameError && (
+                                <p className="text-[8px] text-red-400 mt-1 font-bold leading-tight">{nameError}</p>
+                            )}
+                            {!nameError && !isEditing && formData.name && projects[formData.name.trim().toUpperCase()] && (
+                                <p className="text-[8px] text-amber-400 mt-1 font-bold">⚠️ Este ID ya existe. Modifícalo para no sobreescribir.</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
